@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import Input from '../common/Input';
 import Button from '../common/Button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -112,10 +113,11 @@ const ProviderRegisterForm: React.FC = () => {
       
       // Redirect to provider dashboard
       router.push('/dashboard/provider');
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       console.error('Provider registration error:', error);
       setErrors({
-        general: error.message || 'Failed to register as a provider. Please try again later.'
+        general: errorMessage || 'Failed to register as a provider. Please try again later.'
       });
     } finally {
       setIsSubmitting(false);
@@ -146,10 +148,11 @@ const ProviderRegisterForm: React.FC = () => {
       
       // Redirect to provider dashboard
       router.push('/dashboard/provider');
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       console.error('Provider Google registration error:', error);
       setErrors({
-        general: error.message || 'Failed to register as a provider with Google. Please try again later.'
+        general: errorMessage || 'Failed to register as a provider with Google. Please try again later.'
       });
     } finally {
       setIsSubmitting(false);
@@ -180,7 +183,7 @@ const ProviderRegisterForm: React.FC = () => {
           <div className="mb-8">
             <h2 className="text-3xl font-bold mb-2">Provider Registration</h2>
             <p className="text-gray-600">Fill the fields below to join as a service provider.</p>
-            <p className="text-gray-500 mt-2 text-sm">After registration, you'll need to complete your profile with additional information.</p>
+            <p className="text-gray-500 mt-2 text-sm">After registration, you&apos;ll need to complete your profile with additional information.</p>
           </div>
           
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -277,12 +280,17 @@ const ProviderRegisterForm: React.FC = () => {
               onClick={handleGoogleSignUp}
               disabled={isSubmitting}
             >
-              <img 
+              <Image 
                 src="/icons/google.svg" 
                 alt="Google" 
+                width={20}
+                height={20}
                 className="w-5 h-5"
                 onError={(e) => {
-                  e.currentTarget.src = 'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg';
+                  // TypeScript doesn't allow direct assignment to src on the Image component
+                  // Using a type assertion to handle the fallback
+                  const imgElement = e.currentTarget as HTMLImageElement;
+                  imgElement.src = 'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg';
                 }}
               />
               Sign up with Google

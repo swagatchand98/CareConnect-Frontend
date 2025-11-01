@@ -32,13 +32,11 @@ interface BookingFormProps {
 const BookingForm: React.FC<BookingFormProps> = ({
   serviceId,
   serviceName,
-  providerId,
-  providerName,
   onSuccess
 }) => {
   const router = useRouter();
   const { bookAvailableTimeSlot, error: apiError } = useTimeSlots();
-  const { defaultAddress, addresses, fetchAddresses, isLoading: addressLoading } = useAddress();
+  const { defaultAddress, addresses, fetchAddresses } = useAddress();
   
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<TimeSlot | null>(null);
   const [selectedSegment, setSelectedSegment] = useState<TimeSlotSegment | null>(null);
@@ -98,11 +96,6 @@ const BookingForm: React.FC<BookingFormProps> = ({
       }));
     }
   }, [selectedAddress]);
-  
-  // Handle address selection from AddressSelector
-  const handleAddressSelect = (address: Address) => {
-    setSelectedAddress(address);
-  };
   
   // Handle time slot selection
   const handleTimeSlotSelect = (timeSlot: TimeSlot, segment?: TimeSlotSegment) => {
@@ -264,16 +257,18 @@ const BookingForm: React.FC<BookingFormProps> = ({
           router.push('/dashboard/user');
         }, 2000);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Booking error:', err);
       
-      if (err.message === 'Request timed out') {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to book time slot';
+      
+      if (errorMessage === 'Request timed out') {
         setFormErrors({
           general: 'The booking request timed out. Please try again.'
         });
       } else {
         setFormErrors({
-          general: err.message || 'Failed to book time slot'
+          general: errorMessage
         });
       }
     } finally {
@@ -301,8 +296,8 @@ const BookingForm: React.FC<BookingFormProps> = ({
   };
   
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
-      <h2 className="text-xl font-semibold mb-4">Book {serviceName}</h2>
+    <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+      <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Book {serviceName}</h2>
       
       {/* Success Message */}
       {successMessage && (
@@ -354,10 +349,10 @@ const BookingForm: React.FC<BookingFormProps> = ({
       ) : (
         <>
           {/* Booking Details Form */}
-          <div className="mb-6">
-            <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-              <h3 className="font-medium text-blue-800 mb-2">Selected Time Slot</h3>
-              <p className="text-blue-700">
+          <div className="mb-4 sm:mb-6">
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-3 sm:p-4">
+              <h3 className="font-medium text-blue-800 mb-2 text-sm sm:text-base">Selected Time Slot</h3>
+              <p className="text-blue-700 text-sm sm:text-base break-words">
                 {selectedTimeSlot && (
                   <>
                     {formatDate(selectedTimeSlot.date)} at {formatTime(selectedTimeSlot.startTime)} - {formatTime(selectedTimeSlot.endTime)}
@@ -365,13 +360,13 @@ const BookingForm: React.FC<BookingFormProps> = ({
                 )}
               </p>
               {selectedSegment && (
-                <p className="text-blue-700 mt-1">
+                <p className="text-blue-700 mt-1 text-sm sm:text-base break-words">
                   <span className="font-medium">Selected Segment:</span> {formatTime(selectedSegment.start)} - {formatTime(selectedSegment.end)}
                 </p>
               )}
               <button
                 onClick={handleBackToTimeSelection}
-                className="text-blue-600 hover:text-blue-800 text-sm mt-2"
+                className="text-blue-600 hover:text-blue-800 text-xs sm:text-sm mt-2"
               >
                 Change Time Slot
               </button>
@@ -384,29 +379,29 @@ const BookingForm: React.FC<BookingFormProps> = ({
               <h3 className="font-medium mb-3">Service Address</h3>
               
               {/* Address Selector */}
-              <div className="mb-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                <p className="text-sm text-gray-600 mb-2">Select from your saved addresses or enter a new address below:</p>
+              <div className="mb-3 sm:mb-4 p-3 sm:p-4 border border-gray-200 rounded-lg bg-gray-50">
+                <p className="text-xs sm:text-sm text-gray-600 mb-2">Select from your saved addresses or enter a new address below:</p>
                 <div className="custom-address-selector">
                   {/* Custom implementation of AddressSelector that updates the form */}
                   {addresses.length > 0 ? (
                     <div className="mb-3">
-                      <label className="block text-sm font-medium mb-1">Saved Addresses</label>
-                      <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto">
+                      <label className="block text-xs sm:text-sm font-medium mb-1">Saved Addresses</label>
+                      <div className="grid grid-cols-1 gap-2 max-h-48 sm:max-h-60 overflow-y-auto">
                         {addresses.map((addr) => (
                           <div
                             key={addr._id}
                             onClick={() => setSelectedAddress(addr)}
-                            className={`p-3 border rounded-md cursor-pointer hover:bg-gray-50 ${
+                            className={`p-2 sm:p-3 border rounded-md cursor-pointer hover:bg-gray-50 transition-colors ${
                               selectedAddress?._id === addr._id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
                             }`}
                           >
                             <div className="flex items-start">
                               <div className="flex-1">
-                                <div className="font-medium">
+                                <div className="font-medium text-sm sm:text-base">
                                   {addr.name} <span className="text-xs font-normal text-gray-500 ml-1">({addr.type})</span>
                                 </div>
-                                <div className="text-sm text-gray-600">{addr.street}</div>
-                                <div className="text-sm text-gray-600">
+                                <div className="text-xs sm:text-sm text-gray-600 break-words">{addr.street}</div>
+                                <div className="text-xs sm:text-sm text-gray-600">
                                   {addr.city}, {addr.state} {addr.zipCode}
                                 </div>
                                 {addr.isDefault && (
@@ -420,7 +415,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
                     </div>
                   ) : (
                     <div className="text-center py-3">
-                      <p className="text-gray-500 mb-2">No saved addresses found</p>
+                      <p className="text-gray-500 mb-2 text-xs sm:text-sm">No saved addresses found</p>
                     </div>
                   )}
                   
@@ -445,7 +440,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
               </div>
               
               {/* City, State, ZIP */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
                 <div>
                   <label htmlFor="city" className="block text-sm font-medium mb-1">
                     City<span className="text-red-500 ml-1">*</span>

@@ -10,12 +10,12 @@ import EnhancedHeader from "@/components/layout/EnhancedHeader";
 import Footer from "@/components/layout/Footer";
 import Button from "@/components/common/Button";
 import UserBookingsList from "@/components/services/UserBookingsList";
-import { Service, ServiceCategory } from "@/services/serviceService";
+import { Service } from "@/services/serviceService";
 import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import InteractiveSlider from "@/components/user/dashboard/interactiveSlider";
-import { TextField } from "@mui/material";
+import Image from "next/image";
 
 export default function UserDashboard() {
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
@@ -25,23 +25,18 @@ export default function UserDashboard() {
   // Services state
   const {
     fetchServices,
-    fetchServiceCategories,
     isLoading: servicesLoading,
-    isCategoriesLoading,
-    error: servicesError,
   } = useServices();
 
-  const {
-    fetchUserBookings,
-    isLoading: bookingsLoading,
-    error: bookingsError,
-  } = useBooking();
+  // Using useBooking hook but not extracting any properties
+  useBooking();
 
   // No longer needed since categories have been removed
   const [services, setServices] = useState<Service[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [date, setDate] = useState<Date | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // Error state is used internally but not displayed
+  const [, setError] = useState<string | null>(null);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -66,7 +61,7 @@ export default function UserDashboard() {
       try {
         console.log("Fetching popular services...");
         // Get popular services (we'll just get the first 4 services for now)
-        const response = await fetchServices(1, 5);
+        const response = await fetchServices(1, 4);
         console.log("Services response:", response);
 
         // Only update state if the component is still mounted
@@ -74,11 +69,12 @@ export default function UserDashboard() {
           console.log("Setting services state with:", response.services);
           setServices(response.services);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         // Only update state if the component is still mounted
         if (isMounted) {
           console.error("Error loading services:", err);
-          setError(err.message || "Failed to load services");
+          const errorMessage = err instanceof Error ? err.message : "Failed to load services";
+          setError(errorMessage);
         }
       } finally {
         // Only update state if the component is still mounted
@@ -94,7 +90,7 @@ export default function UserDashboard() {
     return () => {
       isMounted = false;
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated]); // Remove fetchServices from dependencies to prevent infinite re-renders
 
   // Set isLoading to false when authentication is complete
   useEffect(() => {
@@ -158,27 +154,27 @@ export default function UserDashboard() {
       </div>
 
       {/* Welcome Section */}
-      <section className="flex-grow container mx-auto px-4 pt-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">
-              Welcome back, {user.name}!
+      <section className="container mx-auto px-4 sm:px-6 pt-4 sm:pt-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2">
+              Welcome back, {user.name?.split(' ')[0] || 'User'}!
             </h1>
-            <p className="text-gray-600">
+            <p className="text-gray-600 text-sm sm:text-base">
               Find and book the care services you need.
             </p>
           </div>
-          <div className="mt-4 md:mt-0">
+          <div className="w-full sm:w-auto">
             <Link href="/services/browse">
-              <Button className="px-6 py-2">Book a Service</Button>
+              <Button className="w-full sm:w-auto px-6 py-3 text-center">Book a Service</Button>
             </Link>
           </div>
         </div>
       </section>
-      <main className="flex-grow container mx-auto px-4 py-8">
-        <section className="mb-10">
+      <main className="flex-grow container mx-auto px-4 sm:px-6 py-4 sm:py-8">
+        <section className="mb-6 sm:mb-10">
           {/* Quick Actions */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-4 sm:mt-6">
             <Link
               href="/dashboard/user/bookings"
               className="bg-white rounded-lg shadow-sm p-4 flex flex-col items-center text-center hover:shadow-md transition-shadow"
@@ -274,25 +270,25 @@ export default function UserDashboard() {
         </section>
 
         {/* New Feature Highlight */}
-        <section className="mb-10">
-          <div className="bg-gradient-to-r bg-[#3C73FE] rounded-lg shadow-md p-6 text-white">
-            <div className="flex flex-col md:flex-row items-center">
-              <div className="mb-6 md:mb-0 md:mr-8 flex-1">
-                <h2 className="text-2xl font-bold mb-2">
+        <section className="mb-6 sm:mb-10">
+          <div className="bg-gradient-to-r from-[#3C73FE] to-blue-600 rounded-xl sm:rounded-2xl shadow-md p-4 sm:p-6 text-white">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 lg:gap-8">
+              <div className="flex-1">
+                <h2 className="text-xl sm:text-2xl font-bold mb-2 sm:mb-3">
                   New: Book Services by Time Slot
                 </h2>
-                <p className="text-green-50 mb-4">
+                <p className="text-blue-50 mb-4 text-sm sm:text-base leading-relaxed">
                   Now you can book services at specific times that work for you!
                   Browse available time slots from our providers and schedule
                   your care services with precision.
                 </p>
                 <Link href="/services/browse">
-                  <div className="bg-white text-[#3C73FE] hover:bg-green-50 px-6 py-2 size-fit rounded-md text-center font-medium transition-colors">
+                  <div className="inline-block bg-white text-[#3C73FE] hover:bg-blue-50 px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-center font-medium transition-colors text-sm sm:text-base">
                     Try It Now
                   </div>
                 </Link>
               </div>
-              <div className="h-50 w-50">
+              <div className="hidden lg:block">
                 <LocalizationProvider dateAdapter={AdapterDateFns}>
                   <DateCalendar
                     value={date}
@@ -302,11 +298,11 @@ export default function UserDashboard() {
                     disablePast
                     views={["day"]}
                     sx={{
-                      transform: "scale(0.6)",
+                      transform: "scale(0.7)",
                       transformOrigin: "top left",
                       width: "fit-content",
-                      bgcolor: "#f5f5f5", // background color
-                      color: "#1a237e", // base text color
+                      bgcolor: "#f5f5f5",
+                      color: "#1a237e",
                       borderRadius: 2,
                       p: 1,
                     }}
@@ -318,36 +314,36 @@ export default function UserDashboard() {
         </section>
 
         {/* Services Section */}
-        <section className="mb-10">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">Services</h2>
-            <div className="flex space-x-2">
+        <section className="mb-6 sm:mb-10">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <h2 className="text-xl sm:text-2xl font-bold">Services</h2>
+            <div className="flex w-full sm:w-auto overflow-x-auto gap-2">
               <button
                 onClick={() => setActiveTab("recommended")}
-                className={`px-4 py-2 rounded-md text-sm font-medium ${
+                className={`flex-shrink-0 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                   activeTab === "recommended"
-                    ? "bg-black text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
                 Recommended
               </button>
               <button
                 onClick={() => setActiveTab("popular")}
-                className={`px-4 py-2 rounded-md text-sm font-medium ${
+                className={`flex-shrink-0 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                   activeTab === "popular"
-                    ? "bg-black text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
                 Popular
               </button>
               <button
                 onClick={() => setActiveTab("nearby")}
-                className={`px-4 py-2 rounded-md text-sm font-medium ${
+                className={`flex-shrink-0 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                   activeTab === "nearby"
-                    ? "bg-black text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
                 Nearby
@@ -364,15 +360,15 @@ export default function UserDashboard() {
               <p>No services available.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
               {services.map((service) => (
                 <Link
                   key={service._id}
                   href={`/services/details/${service._id}`}
-                  className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow"
+                  className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
                 >
-                  <div className="aspect-w-16 aspect-h-12 w-full overflow-hidden">
-                    <img
+                  <div className="aspect-video w-full overflow-hidden bg-gray-100">
+                    <Image
                       src={
                         service.images && service.images.length > 0
                           ? service.images[0]
@@ -380,31 +376,25 @@ export default function UserDashboard() {
                       }
                       alt={service.title}
                       className="w-full h-full object-cover"
+                      width={300}
+                      height={200}
                     />
                   </div>
-                  <div className="p-3">
-                    <h3 className="font-semibold text-base mb-0.5 truncate">
+                  <div className="p-4 sm:p-5">
+                    <h3 className="font-semibold text-gray-900 text-base sm:text-lg mb-2 line-clamp-1">
                       {service.title}
                     </h3>
-                    <p className="text-gray-600 text-xs mb-2 line-clamp-2">
-                      {service.description.substring(0, 45)}...
+                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                      {service.description.substring(0, 80)}...
                     </p>
                     <div className="flex justify-between items-center">
-                      <span className="font-bold text-sm">
-                        ${service.price.amount}/{service.price.type}
+                      <span className="font-bold text-blue-600 text-lg">
+                        ${service.price.amount}
+                        <span className="text-sm text-gray-500">/{service.price.type}</span>
                       </span>
-                      <div className="flex items-center">
-                        <svg
-                          className="w-3 h-3 text-yellow-500"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
-                        </svg>
-                        <span className="text-xs text-gray-600 ml-1">
-                          4.8 (56)
-                        </span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-yellow-500">⭐</span>
+                        <span className="text-sm text-gray-600">4.8 (56)</span>
                       </div>
                     </div>
                   </div>
@@ -423,12 +413,17 @@ export default function UserDashboard() {
         </section>
 
         {/* Upcoming Bookings Section */}
-        <section className="mb-10">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">Your Bookings</h2>
+        <section className="mb-6 sm:mb-10">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold">Your Bookings</h2>
+              <p className="text-gray-600 text-sm sm:text-base mt-1">
+                Track your care appointments
+              </p>
+            </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
             <UserBookingsList limit={3} showViewAll={true} />
           </div>
         </section>

@@ -1,4 +1,5 @@
 import axios from '../lib/axios';
+import { PaymentType, PaymentStatus } from '../types/payment';
 
 export interface EarningsSummary {
   totalEarnings: number;
@@ -100,6 +101,7 @@ export const getEarningsHistory = async (filters?: EarningsFilters): Promise<Ear
  * This is a utility function to convert the payment history data from the API
  * into the format expected by the earnings page
  */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export const transformPaymentHistoryToEarnings = (payments: any[]): EarningsHistoryItem[] => {
   return payments
     .filter(payment => {
@@ -109,12 +111,12 @@ export const transformPaymentHistoryToEarnings = (payments: any[]): EarningsHist
       
       // Only include completed bookings and refunds for completed bookings
       return isBookingCompleted && (
-        (payment.type === 'BOOKING' && payment.status === 'COMPLETED') || 
-        payment.type === 'REFUND'
+        (payment.type === PaymentType.BOOKING && payment.status === PaymentStatus.COMPLETED) || 
+        payment.type === PaymentType.REFUND
       );
     })
     .map(payment => {
-      const isRefund = payment.type === 'REFUND';
+      const isRefund = payment.type === PaymentType.REFUND;
       const bookingDetails = payment.bookingId || {};
       const clientDetails = payment.userId || {};
       
@@ -152,7 +154,7 @@ export const calculateMonthlyEarnings = (payments: any[]): MonthlyEarning[] => {
     const bookingDetails = payment.bookingId || {};
     const isBookingCompleted = bookingDetails.status === 'completed';
     
-    if (isBookingCompleted && payment.type === 'BOOKING' && payment.status === 'COMPLETED') {
+    if (isBookingCompleted && payment.type === PaymentType.BOOKING && payment.status === PaymentStatus.COMPLETED) {
       const date = new Date(payment.createdAt);
       const monthKey = months[date.getMonth()];
       

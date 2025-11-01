@@ -1,30 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getPaymentHistory } from '@/services/paymentService';
+import { getPaymentHistory, PaymentHistoryItem } from '@/services/paymentService';
 import Button from '../common/Button';
 
-interface Payment {
-  _id: string;
-  bookingId: {
-    _id: string;
-    serviceId: string;
-    dateTime: string;
-    status: string;
-  };
-  providerId: {
-    firstName: string;
-    lastName: string;
-    email: string;
-  };
-  amount: number;
-  status: string;
-  type: string;
-  createdAt: string;
-}
-
 const PaymentHistory: React.FC = () => {
-  const [payments, setPayments] = useState<Payment[]>([]);
+  const [payments, setPayments] = useState<PaymentHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,9 +16,10 @@ const PaymentHistory: React.FC = () => {
         const data = await getPaymentHistory();
         setPayments(data.payments);
         setIsLoading(false);
-      } catch (err: any) {
-        console.error('Error fetching payment history:', err);
-        setError(err.message || 'Failed to load payment history');
+      } catch (err: unknown) {
+        const error = err as Error;
+        console.error('Error fetching payment history:', error);
+        setError(error.message || 'Failed to load payment history');
         setIsLoading(false);
       }
     };

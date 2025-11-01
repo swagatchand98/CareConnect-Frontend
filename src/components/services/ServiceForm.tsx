@@ -1,11 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import useServices from '@/hooks/useServices';
 import { Service, ServiceCategory, ServiceFormData } from '@/services/serviceService';
-import Button from '../common/Button';
+// Button is used in the form's submit button, but we're using a native button instead
 
 interface ServiceFormProps {
   initialData?: Service;
@@ -16,14 +15,14 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
   initialData,
   onSuccess
 }) => {
-  const router = useRouter();
+  // Router is not used in this component
   const { 
     fetchServiceCategories, 
     createNewService, 
     updateExistingService, 
-    isCategoriesLoading,
-    isServiceSubmitting, 
-    error 
+    // isCategoriesLoading is not used
+    isServiceSubmitting
+    // error is not used
   } = useServices();
   
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
@@ -43,10 +42,17 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<ServiceCategory | null>(null);
   const [availableTasks, setAvailableTasks] = useState<string[]>([]);
   const [formErrors, setFormErrors] = useState<{[key: string]: string}>({});
-  const [previewImages, setPreviewImages] = useState<string[]>(
-    initialData?.images || []
+  const [previewMedia, setPreviewMedia] = useState<{url: string, type: 'image' | 'video'}[]>(
+    initialData?.mediaFiles 
+      ? initialData.mediaFiles.map(media => ({
+          url: media.url,
+          type: media.type as 'image' | 'video'
+        }))
+      : initialData?.images 
+        ? initialData.images.map(url => ({url, type: 'image' as 'image' | 'video'}))
+        : []
   );
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [successMessage, setSuccessMessage] = useState('');
   
   // Use refs to track state and prevent infinite loops
@@ -55,7 +61,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
   const mountedRef = React.useRef(false);
   
   // Memoize the initial category ID to avoid dependency issues
-  const initialCategoryId = React.useMemo(() => formData.categoryId, []);
+  const initialCategoryId = React.useMemo(() => formData.categoryId, [formData.categoryId]);
   
   // Memoize the loadCategories function to avoid recreating it on every render
   const loadCategories = React.useCallback(async () => {
@@ -75,8 +81,9 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
           setAvailableTasks(category.tasks || []);
         }
       }
-    } catch (err: any) {
-      console.error('Error loading categories:', err);
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      console.error('Error loading categories:', error);
       
       // If all API attempts failed, use default categories
       if (!defaultCategoriesSetRef.current) {
@@ -178,23 +185,29 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
     }));
   };
   
-  // Handle image upload
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle media upload (images and videos)
+  const handleMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
       
-      // Create preview URLs for the images
-      const newPreviewImages = files.map(file => URL.createObjectURL(file));
+      // Create preview URLs for the media files
+      const newPreviewMedia = files.map(file => {
+        const isVideo = file.type.startsWith('video/');
+        return {
+          url: URL.createObjectURL(file),
+          type: isVideo ? 'video' : 'image' as 'image' | 'video'
+        };
+      });
       
-      setPreviewImages(prev => [...prev, ...newPreviewImages]);
-      setImageFiles(prev => [...prev, ...files]);
+      setPreviewMedia(prev => [...prev, ...newPreviewMedia]);
+      setMediaFiles(prev => [...prev, ...files]);
     }
   };
   
-  // Remove image
-  const handleRemoveImage = (index: number) => {
-    setPreviewImages(prev => prev.filter((_, i) => i !== index));
-    setImageFiles(prev => prev.filter((_, i) => i !== index));
+  // Remove media
+  const handleRemoveMedia = (index: number) => {
+    setPreviewMedia(prev => prev.filter((_, i) => i !== index));
+    setMediaFiles(prev => prev.filter((_, i) => i !== index));
   };
   
   // Handle form input change
@@ -261,21 +274,21 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
     }
     
     try {
-      // Add images to form data
-      const formDataWithImages = {
+      // Add media files to form data
+      const formDataWithMedia = {
         ...formData,
-        images: imageFiles
+        images: mediaFiles
       };
       
       let service;
       
       if (initialData) {
         // Update existing service
-        service = await updateExistingService(initialData._id, formDataWithImages);
+        service = await updateExistingService(initialData._id, formDataWithMedia);
         setSuccessMessage('Service updated successfully!');
       } else {
         // Create new service
-        service = await createNewService(formDataWithImages);
+        service = await createNewService(formDataWithMedia);
         setSuccessMessage('Service created successfully!');
       }
       
@@ -293,8 +306,8 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
             specialRequirements: '',
             includedServices: []
           });
-          setPreviewImages([]);
-          setImageFiles([]);
+          setPreviewMedia([]);
+          setMediaFiles([]);
           setSelectedCategory(null);
           setAvailableTasks([]);
         }, 0);
@@ -309,10 +322,11 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       setTimeout(() => {
         setSuccessMessage('');
       }, 3000);
-    } catch (err: any) {
-      console.error('Error submitting form:', err);
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      console.error('Error submitting form:', error);
       setFormErrors({
-        general: err.message || 'An error occurred while saving the service'
+        general: error.message || 'An error occurred while saving the service'
       });
     }
   };
@@ -501,27 +515,42 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
           ></textarea>
         </div>
         
-        {/* Images */}
+        {/* Media Files (Images and Videos) */}
         <div>
           <label className="block text-sm font-medium mb-2">
-            Service Images
+            Service Media (Images & Videos)
           </label>
           
-          {/* Image Preview */}
-          {previewImages.length > 0 && (
+          {/* Media Preview */}
+          {previewMedia.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-4">
-              {previewImages.map((image, index) => (
+              {previewMedia.map((media, index) => (
                 <div key={index} className="relative w-24 h-24">
-                  <Image
-                    src={image}
-                    alt={`Preview ${index + 1}`}
-                    fill
-                    sizes="96px"
-                    className="object-cover rounded-md"
-                  />
+                  {media.type === 'image' ? (
+                    <Image
+                      src={media.url}
+                      alt={`Preview ${index + 1}`}
+                      fill
+                      sizes="96px"
+                      className="object-cover rounded-md"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-100 rounded-md flex items-center justify-center relative">
+                      <video 
+                        src={media.url} 
+                        className="w-full h-full object-cover rounded-md"
+                        controls
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <svg className="w-8 h-8 text-gray-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd"></path>
+                        </svg>
+                      </div>
+                    </div>
+                  )}
                   <button
                     type="button"
-                    onClick={() => handleRemoveImage(index)}
+                    onClick={() => handleRemoveMedia(index)}
                     className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center"
                   >
                     ×
@@ -531,19 +560,31 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
             </div>
           )}
           
-          <div className="mt-2">
+          <div className="mt-2 space-y-2">
             <label className="block w-full px-4 py-2 border border-gray-300 rounded-md text-center cursor-pointer hover:bg-gray-50">
               <span className="text-gray-600">Upload Images</span>
               <input
                 type="file"
                 accept="image/*"
                 multiple
-                onChange={handleImageUpload}
+                onChange={handleMediaUpload}
                 className="hidden"
               />
             </label>
+            
+            <label className="block w-full px-4 py-2 border border-gray-300 rounded-md text-center cursor-pointer hover:bg-gray-50">
+              <span className="text-gray-600">Upload Videos</span>
+              <input
+                type="file"
+                accept="video/*"
+                multiple
+                onChange={handleMediaUpload}
+                className="hidden"
+              />
+            </label>
+            
             <p className="mt-1 text-xs text-gray-500">
-              You can upload multiple images. Maximum 5 images.
+              You can upload up to 5 media files (images or videos). Videos should be under 50MB.
             </p>
           </div>
         </div>

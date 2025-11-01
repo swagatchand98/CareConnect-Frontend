@@ -2,9 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTimeSlots } from '@/hooks/useTimeSlots';
-import { GroupedTimeSlots, TimeSlot } from '@/services/timeSlotService';
+import { GroupedTimeSlots, TimeSlot, TimeSlotSegment as ImportedTimeSlotSegment } from '@/services/timeSlotService';
 import { getServiceById } from '@/services/serviceService';
-import Button from '@/components/common/Button';
 
 interface TimeSlotSegment {
   timeSlotId: string;
@@ -29,7 +28,7 @@ const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
   selectedSegmentIndex
 }) => {
   // Hooks from useTimeSlots
-  const { fetchServiceTimeSlots, isLoading: apiLoading, error: apiError } = useTimeSlots();
+  const { fetchServiceTimeSlots } = useTimeSlots();
   
   // Component state
   const [groupedTimeSlots, setGroupedTimeSlots] = useState<GroupedTimeSlots>({});
@@ -38,7 +37,6 @@ const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [serviceDuration, setServiceDuration] = useState<number>(60); // Default to 60 minutes
-  const [isLoadingService, setIsLoadingService] = useState<boolean>(false);
   
   // Format date for display
   const formatDate = (dateStr: string) => {
@@ -62,7 +60,6 @@ const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
   const getDatesInMonth = () => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
-    const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
     
@@ -204,7 +201,7 @@ const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
       console.log('API response received:', response);
       
       // Extract the groupedSlots from the API response
-      const groupedSlots = response.groupedSlots as any;
+      const groupedSlots = response.groupedSlots as Record<string, TimeSlot[]>;
       const slotsCount = Object.keys(groupedSlots).length;
       console.log(`Time slots in response: ${slotsCount}`);
       
@@ -221,25 +218,26 @@ const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
         const formattedDate = dateObj.toISOString().split('T')[0];
         console.log(`Formatted date: ${formattedDate}`);
         
-        processedSlots[formattedDate] = groupedSlots[date].map((slot: any) => {
+        processedSlots[formattedDate] = groupedSlots[date].map((slot: unknown) => {
+          const slotData = slot as Record<string, unknown>;
           // Extract providerId as string if it's an object
-          const providerId = typeof slot.providerId === 'object' && slot.providerId !== null
-            ? slot.providerId._id
-            : slot.providerId;
+          const providerId = typeof slotData.providerId === 'object' && slotData.providerId !== null
+            ? (slotData.providerId as { _id: string })._id
+            : slotData.providerId as string;
           
           // Return a new object with the correct format
           return {
-            _id: slot._id,
+            _id: slotData._id as string,
             providerId,
-            serviceId: slot.serviceId,
-            date: slot.date,
-            startTime: slot.startTime,
-            endTime: slot.endTime,
-            isBooked: slot.isBooked,
-            segments: slot.segments || [],
-            createdAt: slot.createdAt,
-            updatedAt: slot.updatedAt
-          };
+            serviceId: slotData.serviceId as string,
+            date: slotData.date as string,
+            startTime: slotData.startTime as string,
+            endTime: slotData.endTime as string,
+            isBooked: slotData.isBooked as boolean,
+            segments: (slotData.segments as ImportedTimeSlotSegment[]) || [],
+            createdAt: slotData.createdAt as string,
+            updatedAt: slotData.updatedAt as string
+          } as TimeSlot;
         });
       });
         
@@ -259,7 +257,7 @@ const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
     }
   };
   
-  // Set up an interval to refresh time slots every 5 seconds
+  // Set up intelligent polling for time slots
   useEffect(() => {
     // Initial load
     const loadInitialTimeSlots = async () => {
@@ -267,12 +265,12 @@ const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
     };
     
     loadInitialTimeSlots();
-    ``
-    // Set up interval for refreshing
+    
+    // Set up interval for refreshing - much less frequent
     const intervalId = setInterval(() => {
       console.log('Auto-refreshing time slots...');
       refreshTimeSlots();
-    }, 25000); // Refresh every 25 seconds
+    }, 300000); // Refresh every 5 minutes instead of 25 seconds
     
     // Clean up interval on unmount
     return () => clearInterval(intervalId);
@@ -289,7 +287,6 @@ const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
     const loadServiceDetails = async () => {
       if (!serviceId) return;
       
-      setIsLoadingService(true);
       try {
         const response = await getServiceById(serviceId);
         if (response && response.service) {
@@ -297,8 +294,6 @@ const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
         }
       } catch (err) {
         console.error('Error loading service details:', err);
-      } finally {
-        setIsLoadingService(false);
       }
     };
     
@@ -351,17 +346,18 @@ const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
   }
   
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Select a Date & Time</h2>
+    <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 mb-4">
+        <h2 className="text-lg sm:text-xl font-semibold">Select a Date & Time</h2>
         <button 
           onClick={handleManualRefresh}
-          className="px-3 py-1 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 flex items-center"
+          className="px-3 py-1 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 flex items-center text-sm"
         >
           <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
           </svg>
-          Refresh
+          <span className="hidden sm:inline">Refresh</span>
+          <span className="sm:hidden">↻</span>
         </button>
       </div>
       
@@ -391,10 +387,10 @@ const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
       </div>
       
       {/* Calendar */}
-      <div className="grid grid-cols-7 gap-1 mb-6">
+      <div className="grid grid-cols-7 gap-1 mb-4 sm:mb-6">
         {/* Day headers */}
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-          <div key={day} className="text-center text-sm font-medium text-gray-500 py-1">
+          <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1">
             {day}
           </div>
         ))}
@@ -410,19 +406,20 @@ const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
             key={dateStr}
             onClick={() => hasTimeSlots && !isPastDate && handleDateSelect(dateStr)}
             className={`
-              p-1 text-center cursor-pointer
+              p-1 text-center cursor-pointer min-h-[40px] sm:min-h-[50px] flex flex-col justify-center
               ${isPastDate ? 'text-gray-300 cursor-not-allowed' : 
                 hasTimeSlots ? 'hover:bg-gray-100' : 'opacity-50 cursor-not-allowed'}
               ${selectedDate === dateStr ? 'bg-blue-100 text-blue-800' : ''}
               ${dateStr === new Date().toISOString().split('T')[0] ? 'border border-blue-500' : ''}
             `}
           >
-            <div className="text-sm">
+            <div className="text-xs sm:text-sm">
               {date.getDate()}
             </div>
             {hasTimeSlots && (
-              <div className="text-xs text-green-600 mt-1">
-                {groupedTimeSlots[dateStr].length} slots
+              <div className="text-xs text-green-600 mt-0.5">
+                <span className="hidden sm:inline">{groupedTimeSlots[dateStr].length} slots</span>
+                <span className="sm:hidden">•</span>
               </div>
             )}
           </div>
@@ -482,8 +479,6 @@ const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
                 }
               }
               
-              // Check if we have any available segments
-              const hasAvailableSegments = segments.some(segment => !segment.isBooked);
               
               return (
                 <div 
@@ -497,8 +492,8 @@ const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
                   {/* Show segments */}
                   {segments.length > 0 && (
                     <div className="mt-2">
-                      <p className="text-xs text-gray-500 mb-1">Segments ({serviceDuration} min each):</p>
-                      <div className="grid grid-cols-4 gap-1">
+                      <p className="text-xs text-gray-500 mb-2">Segments ({serviceDuration} min each):</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                         {segments.map((segment) => {
                           console.log('Rendering segment:', segment);
                           return (
@@ -514,7 +509,7 @@ const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
                               }}
                               disabled={segment.isBooked || segment.isReserved}
                               className={`
-                                text-xs px-2 py-2 rounded-md text-left
+                                text-xs px-3 py-2 rounded-md text-center transition-colors
                                 ${selectedTimeSlotId === timeSlot._id && selectedSegmentIndex === segment.segmentIndex
                                   ? 'bg-blue-600 text-white'
                                   : segment.isBooked
@@ -525,14 +520,16 @@ const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
                                 }
                               `}
                             >
-                              {formatTime(segment.startTime)} - {formatTime(segment.endTime)}
-                              <span className="ml-1 font-medium">
+                              <div className="font-medium">
+                                {formatTime(segment.startTime)} - {formatTime(segment.endTime)}
+                              </div>
+                              <div className="text-xs mt-1">
                                 {segment.isBooked 
-                                  ? '(Booked)' 
+                                  ? 'Booked' 
                                   : segment.isReserved 
-                                    ? '(Reserved)' 
-                                    : '(Available)'}
-                              </span>
+                                    ? 'Reserved' 
+                                    : 'Available'}
+                              </div>
                             </button>
                           );
                         })}

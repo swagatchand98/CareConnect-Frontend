@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/config/firebase';
-import api from '@/lib/axios';
 import {
   UserData,
   ProviderRegistrationData,
@@ -13,7 +12,6 @@ import {
   registerAsProvider,
   registerAsProviderWithGoogle,
   logout as logoutService,
-  getUserProfile,
   updateUserProfile,
   resetPassword,
   verifyEmail
@@ -21,7 +19,7 @@ import {
 
 interface AuthContextType {
   user: UserData | null;
-  firebaseUser: any;
+  firebaseUser: unknown;
   isAuthenticated: boolean;
   isLoading: boolean;
   token: string | null;
@@ -66,7 +64,7 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<UserData | null>(null);
-  const [firebaseUser, setFirebaseUser] = useState<any>(null);
+  const [firebaseUser, setFirebaseUser] = useState<unknown>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 

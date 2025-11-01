@@ -64,8 +64,9 @@ const UserBookingsList: React.FC<UserBookingsListProps> = ({
         await cancelUserBooking(bookingId);
         // Refresh bookings after cancellation
         loadBookings();
-      } catch (err: any) {
-        setCancelError(err.message || 'Failed to cancel booking');
+      } catch (err: unknown) {
+        const error = err as Error;
+        setCancelError(error.message || 'Failed to cancel booking');
       } finally {
         setIsLoadingCancel(false);
       }
@@ -126,7 +127,7 @@ const UserBookingsList: React.FC<UserBookingsListProps> = ({
   if (bookings.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-500">You don't have any bookings yet.</p>
+        <p className="text-gray-500">You don&apos;t have any bookings yet.</p>
         <button 
           onClick={() => router.push('/services/browse')}
           className="mt-4 px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition-colors"

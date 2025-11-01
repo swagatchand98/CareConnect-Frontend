@@ -70,11 +70,12 @@ const ServiceList: React.FC<ServiceListProps> = ({
         setTotalServices(response.total);
         setTotalPages(response.totalPages);
       }
-    } catch (err: any) {
-      console.error('Error loading services:', err);
+    } catch (err: unknown) {
+      const error = err as { response?: { status?: number } };
+      console.error('Error loading services:', error);
       
       // Handle rate limiting with exponential backoff
-      if (err?.response?.status === 429 && retryCount < 3) {
+      if (error?.response?.status === 429 && retryCount < 3) {
         const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
         console.log(`Rate limited. Retrying in ${delay}ms... (Attempt ${retryCount + 1}/3)`);
         
@@ -117,13 +118,14 @@ const ServiceList: React.FC<ServiceListProps> = ({
   
   return (
     <div>
-      <div className="mb-4">
-        <p className="text-gray-600">
+      <div className="mb-4 sm:mb-6">
+        <p className="text-sm sm:text-base text-gray-600">
           Showing {services.length} of {totalServices} services
         </p>
       </div>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {/* Mobile: 2 columns, Tablet: 2 columns, Desktop: 3 columns, Large: 4 columns */}
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
         {services.map((service) => (
           <ServiceCard key={service._id} service={service} />
         ))}
@@ -131,12 +133,12 @@ const ServiceList: React.FC<ServiceListProps> = ({
       
       {/* Pagination */}
       {showPagination && totalPages > 1 && (
-        <div className="flex justify-center mt-8">
-          <nav className="flex items-center space-x-1">
+        <div className="flex justify-center mt-6 sm:mt-8">
+          <nav className="flex items-center space-x-1 overflow-x-auto">
             <button
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              className={`px-3 py-1 rounded-md ${
+              className={`px-2 sm:px-3 py-1 rounded-md text-sm sm:text-base whitespace-nowrap ${
                 currentPage === 1
                   ? 'text-gray-400 cursor-not-allowed'
                   : 'text-gray-700 hover:bg-gray-100'
@@ -145,24 +147,38 @@ const ServiceList: React.FC<ServiceListProps> = ({
               Previous
             </button>
             
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <button
-                key={page}
-                onClick={() => handlePageChange(page)}
-                className={`px-3 py-1 rounded-md ${
-                  currentPage === page
-                    ? 'bg-black text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                {page}
-              </button>
-            ))}
+            {/* Show fewer page numbers on mobile */}
+            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+              let page;
+              if (totalPages <= 5) {
+                page = i + 1;
+              } else {
+                // Show pages around current page
+                const start = Math.max(1, currentPage - 2);
+                const end = Math.min(totalPages, start + 4);
+                page = start + i;
+                if (page > end) return null;
+              }
+              
+              return (
+                <button
+                  key={page}
+                  onClick={() => handlePageChange(page)}
+                  className={`px-2 sm:px-3 py-1 rounded-md text-sm sm:text-base ${
+                    currentPage === page
+                      ? 'bg-black text-white'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  {page}
+                </button>
+              );
+            })}
             
             <button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className={`px-3 py-1 rounded-md ${
+              className={`px-2 sm:px-3 py-1 rounded-md text-sm sm:text-base whitespace-nowrap ${
                 currentPage === totalPages
                   ? 'text-gray-400 cursor-not-allowed'
                   : 'text-gray-700 hover:bg-gray-100'

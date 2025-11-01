@@ -4,9 +4,6 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   BookingFormData,
-  Booking,
-  BookingResponse,
-  BookingsResponse,
   createBooking,
   getUserBookings,
   getProviderBookings,

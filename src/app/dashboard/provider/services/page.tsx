@@ -88,7 +88,7 @@ export default function ProviderServicesPage() {
       isMounted = false;
       clearTimeout(timer);
     };
-  }, [isAuthenticated, user?.role]);
+  }, [isAuthenticated, user?.role, fetchProviderServices]);
   
   // Redirect if not authenticated or not a provider
   useEffect(() => {
@@ -158,8 +158,9 @@ export default function ProviderServicesPage() {
         setTimeout(() => {
           setSuccessMessage(null);
         }, 3000);
-      } catch (err: any) {
-        setDeleteError(err.message || 'Failed to delete service');
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to delete service';
+        setDeleteError(errorMessage);
         
         // Hide error message after 3 seconds
         setTimeout(() => {
@@ -303,7 +304,7 @@ export default function ProviderServicesPage() {
             </div>
           ) : services.length === 0 ? (
             <div className="bg-white rounded-lg shadow-sm p-6 text-center">
-              <p className="text-gray-500 mb-4">You haven't created any services yet.</p>
+              <p className="text-gray-500 mb-4">You haven&apos;t created any services yet.</p>
               <button 
                 onClick={handleCreateService}
                 className="bg-black text-white px-6 py-2 rounded-md hover:bg-gray-800 transition-colors"

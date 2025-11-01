@@ -21,6 +21,8 @@ export default function ProviderDashboard() {
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
+  console.log(onboardingSuccess, documentsSuccess, showSuccessMessage, successMessage);
+
   // Check for success query parameters
   useEffect(() => {
     if (typeof window !== 'undefined') {

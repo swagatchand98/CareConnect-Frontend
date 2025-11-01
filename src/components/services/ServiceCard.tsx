@@ -35,11 +35,11 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, className = '' }) =>
   const getMediaFile = () => {
     // First check if we have mediaFiles with images
     if (service.mediaFiles && Array.isArray(service.mediaFiles) && service.mediaFiles.length > 0) {
-      // Find the first image
-      const firstImage = service.mediaFiles.find(file => file.type === 'image');
-      if (firstImage && firstImage.url) {
+      // Filter all images and get the first one in the array
+      const imageFiles = service.mediaFiles.filter(file => file.type === 'image');
+      if (imageFiles.length > 0 && imageFiles[0].url) {
         return {
-          url: firstImage.url,
+          url: imageFiles[0].url,
           type: 'image'
         };
       }
@@ -108,12 +108,13 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, className = '' }) =>
         href={`/services/details/${service._id}`}
         className="block"
       >
-        <div className="aspect-w-4 aspect-h-5 w-full">
+        {/* Fixed aspect ratio container for consistent image frames */}
+        <div className="relative w-full h-48 md:h-86 overflow-hidden bg-gray-100">
           {getMediaFile().type === 'video' ? (
-            <div className="w-full h-full">
+            <div className="relative w-full h-full">
               <video 
                 src={getMediaFile().url}
-                className="object-cover w-full h-full rounded-t-lg"
+                className="absolute inset-0 w-full h-full object-cover rounded-t-lg"
                 muted
                 playsInline
                 loop
@@ -129,35 +130,33 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, className = '' }) =>
               </div>
             </div>
           ) : (
-            // Check if the URL is from S3 (contains amazonaws.com)
+            // Consistent image handling for all image types
             getMediaFile().url.includes('amazonaws.com') ? (
               <img 
                 src={getMediaFile().url}
                 alt={service.title}
-                className="object-cover w-full h-full rounded-t-lg"
+                className="absolute inset-0 w-full h-full object-cover rounded-t-lg"
               />
             ) : (
-              <div className="relative w-full h-0" style={{ paddingBottom: '125%' }}>
-                <Image 
-                  src={getMediaFile().url}
-                  alt={service.title}
-                  fill
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  className="object-cover rounded-t-lg"
-                />
-              </div>
+              <Image 
+                src={getMediaFile().url}
+                alt={service.title}
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                className="object-cover rounded-t-lg"
+              />
             )
           )}
         </div>
         
-        <div className="p-4">
+        <div className="p-3 sm:p-4">
           <div className="flex items-center mb-2">
             <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
               {getCategoryName()}
             </span>
           </div>
           
-          <h3 className="font-semibold text-lg mb-1 line-clamp-1">{service.title}</h3>
+          <h3 className="font-semibold text-sm sm:text-lg mb-1 line-clamp-1">{service.title}</h3>
           
           {/* Rating Display */}
           {service.rating && (
@@ -170,10 +169,10 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, className = '' }) =>
             </div>
           )}
           
-          <p className="text-gray-600 text-sm mb-3 line-clamp-2">{service.description}</p>
+          <p className="text-gray-600 text-xs sm:text-sm mb-3 line-clamp-2">{service.description}</p>
           
-          <div className="flex justify-between items-center">
-            <span className="font-bold">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+            <span className="font-bold text-sm sm:text-base">
               ${service.price.amount.toFixed(2)}
               <span className="text-xs text-gray-500 font-normal">
                 {service.price.type === 'hourly' ? '/hr' : ''}
@@ -181,14 +180,14 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, className = '' }) =>
             </span>
             
             <div className="flex items-center">
-              <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden mr-2">
+              <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden mr-1 sm:mr-2">
                 {typeof service.providerId !== 'string' && service.providerId.profilePicture ? (
                   <Image 
                     src={service.providerId.profilePicture}
                     alt={getProviderName()}
-                    width={24}
-                    height={24}
-                    className="object-cover"
+                    width={20}
+                    height={20}
+                    className="object-cover sm:w-6 sm:h-6"
                   />
                 ) : (
                   <span className="text-xs text-gray-600">

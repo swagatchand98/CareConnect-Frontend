@@ -109,8 +109,8 @@ const UserSettingsPage: React.FC = () => {
       setTimeout(() => {
         setSuccessMessage(null);
       }, 3000);
-    } catch (error: any) {
-      setErrorMessage(error.message || 'Failed to update settings');
+    } catch (error: unknown) {
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to update settings');
     } finally {
       setIsSaving(false);
     }
@@ -142,41 +142,41 @@ const UserSettingsPage: React.FC = () => {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <EnhancedHeader user={user} />
       
-      <main className="flex-grow container mx-auto px-4 py-8">
+      <main className="flex-grow container mx-auto px-4 sm:px-6 py-4 sm:py-8">
         <div className="max-w-3xl mx-auto">
           {/* Page Header */}
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">Account Settings</h1>
-              <p className="text-gray-600">Manage your account preferences and settings</p>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6">
+            <div className="flex-1">
+              <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2">Account Settings</h1>
+              <p className="text-sm sm:text-base text-gray-600">Manage your account preferences and settings</p>
             </div>
             <Button 
               onClick={() => router.push('/dashboard/user')}
               variant="outline"
-              className="px-6 py-2"
+              className="w-full sm:w-auto px-4 sm:px-6 py-2 text-sm sm:text-base"
             >
               Back to Dashboard
             </Button>
           </div>
           
           {/* Settings Form */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
             {successMessage && (
-              <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md">
+              <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md text-sm sm:text-base">
                 {successMessage}
               </div>
             )}
             
             {errorMessage && (
-              <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+              <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm sm:text-base">
                 {errorMessage}
               </div>
             )}
             
             <form onSubmit={handleSubmit}>
-              <div className="mb-8">
-                <h2 className="text-xl font-semibold mb-4">Personal Information</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="mb-6 sm:mb-8">
+                <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Personal Information</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <TextField
                       label="First Name"
@@ -186,6 +186,7 @@ const UserSettingsPage: React.FC = () => {
                       fullWidth
                       variant="outlined"
                       margin="normal"
+                      size="small"
                     />
                   </div>
                   <div>
@@ -197,11 +198,12 @@ const UserSettingsPage: React.FC = () => {
                       fullWidth
                       variant="outlined"
                       margin="normal"
+                      size="small"
                     />
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <TextField
                       label="Email"
@@ -211,6 +213,7 @@ const UserSettingsPage: React.FC = () => {
                       fullWidth
                       variant="outlined"
                       margin="normal"
+                      size="small"
                       helperText="Email cannot be changed"
                     />
                   </div>
@@ -223,86 +226,102 @@ const UserSettingsPage: React.FC = () => {
                       fullWidth
                       variant="outlined"
                       margin="normal"
+                      size="small"
                     />
                   </div>
                 </div>
               </div>
               
-              <div className="mb-8">
-                <h2 className="text-xl font-semibold mb-4">Notification Preferences</h2>
-                <div className="space-y-2">
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={formData.notificationPreferences.email}
-                        onChange={handleNotificationChange('email')}
-                        color="primary"
-                      />
-                    }
-                    label="Email Notifications"
-                  />
-                  <p className="text-sm text-gray-500 ml-9">Receive booking updates and reminders via email</p>
+              <div className="mb-6 sm:mb-8">
+                <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Notification Preferences</h2>
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="border-b border-gray-100 pb-3">
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={formData.notificationPreferences.email}
+                          onChange={handleNotificationChange('email')}
+                          color="primary"
+                          size="small"
+                        />
+                      }
+                      label={<span className="text-sm sm:text-base">Email Notifications</span>}
+                    />
+                    <p className="text-xs sm:text-sm text-gray-500 ml-0 sm:ml-9 mt-1">Receive booking updates and reminders via email</p>
+                  </div>
                   
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={formData.notificationPreferences.sms}
-                        onChange={handleNotificationChange('sms')}
-                        color="primary"
-                      />
-                    }
-                    label="SMS Notifications"
-                  />
-                  <p className="text-sm text-gray-500 ml-9">Receive booking updates and reminders via text message</p>
+                  <div className="border-b border-gray-100 pb-3">
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={formData.notificationPreferences.sms}
+                          onChange={handleNotificationChange('sms')}
+                          color="primary"
+                          size="small"
+                        />
+                      }
+                      label={<span className="text-sm sm:text-base">SMS Notifications</span>}
+                    />
+                    <p className="text-xs sm:text-sm text-gray-500 ml-0 sm:ml-9 mt-1">Receive booking updates and reminders via text message</p>
+                  </div>
                   
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={formData.notificationPreferences.push}
-                        onChange={handleNotificationChange('push')}
-                        color="primary"
-                      />
-                    }
-                    label="Push Notifications"
-                  />
-                  <p className="text-sm text-gray-500 ml-9">Receive push notifications on your device</p>
+                  <div className="pb-3">
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={formData.notificationPreferences.push}
+                          onChange={handleNotificationChange('push')}
+                          color="primary"
+                          size="small"
+                        />
+                      }
+                      label={<span className="text-sm sm:text-base">Push Notifications</span>}
+                    />
+                    <p className="text-xs sm:text-sm text-gray-500 ml-0 sm:ml-9 mt-1">Receive push notifications on your device</p>
+                  </div>
                 </div>
               </div>
               
-              <div className="mb-8">
-                <h2 className="text-xl font-semibold mb-4">Privacy Settings</h2>
-                <div className="space-y-2">
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={formData.privacySettings.shareProfileWithProviders}
-                        onChange={handlePrivacyChange('shareProfileWithProviders')}
-                        color="primary"
-                      />
-                    }
-                    label="Share Profile with Service Providers"
-                  />
-                  <p className="text-sm text-gray-500 ml-9">Allow service providers to see your profile information</p>
+              <div className="mb-6 sm:mb-8">
+                <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Privacy Settings</h2>
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="border-b border-gray-100 pb-3">
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={formData.privacySettings.shareProfileWithProviders}
+                          onChange={handlePrivacyChange('shareProfileWithProviders')}
+                          color="primary"
+                          size="small"
+                        />
+                      }
+                      label={<span className="text-sm sm:text-base">Share Profile with Service Providers</span>}
+                    />
+                    <p className="text-xs sm:text-sm text-gray-500 ml-0 sm:ml-9 mt-1">Allow service providers to see your profile information</p>
+                  </div>
                   
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={formData.privacySettings.allowReviewsDisplay}
-                        onChange={handlePrivacyChange('allowReviewsDisplay')}
-                        color="primary"
-                      />
-                    }
-                    label="Display My Reviews Publicly"
-                  />
-                  <p className="text-sm text-gray-500 ml-9">Allow your reviews to be displayed publicly on provider profiles</p>
+                  <div className="pb-3">
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={formData.privacySettings.allowReviewsDisplay}
+                          onChange={handlePrivacyChange('allowReviewsDisplay')}
+                          color="primary"
+                          size="small"
+                        />
+                      }
+                      label={<span className="text-sm sm:text-base">Display My Reviews Publicly</span>}
+                    />
+                    <p className="text-xs sm:text-sm text-gray-500 ml-0 sm:ml-9 mt-1">Allow your reviews to be displayed publicly on provider profiles</p>
+                  </div>
                 </div>
               </div>
               
-              <div className="mt-8 flex justify-end">
+              <div className="mt-6 sm:mt-8 flex justify-center sm:justify-end">
                 <Button
                   type="submit"
                   disabled={isSaving}
-                  className="px-6 py-2"
+                  className="w-full sm:w-auto px-6 py-2 text-sm sm:text-base"
                 >
                   {isSaving ? 'Saving...' : 'Save Changes'}
                 </Button>
@@ -311,14 +330,14 @@ const UserSettingsPage: React.FC = () => {
           </div>
           
           {/* Danger Zone */}
-          <div className="mt-8 bg-white rounded-lg shadow-sm p-6 border-t-4 border-red-500">
-            <h2 className="text-xl font-semibold mb-4 text-red-600">Danger Zone</h2>
-            <p className="text-gray-600 mb-4">These actions are irreversible. Please proceed with caution.</p>
+          <div className="mt-6 sm:mt-8 bg-white rounded-lg shadow-sm p-4 sm:p-6 border-t-4 border-red-500">
+            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-red-600">Danger Zone</h2>
+            <p className="text-sm sm:text-base text-gray-600 mb-4">These actions are irreversible. Please proceed with caution.</p>
             
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col gap-3 sm:gap-4">
               <Button
                 variant="outline"
-                className="border-red-500 text-red-500 hover:bg-red-50"
+                className="w-full border-red-500 text-red-500 hover:bg-red-50 text-sm sm:text-base py-2.5"
                 onClick={() => {
                   if (window.confirm('Are you sure you want to delete all your payment methods? This action cannot be undone.')) {
                     // Handle delete payment methods
@@ -330,7 +349,7 @@ const UserSettingsPage: React.FC = () => {
               
               <Button
                 variant="outline"
-                className="border-red-500 text-red-500 hover:bg-red-50"
+                className="w-full border-red-500 text-red-500 hover:bg-red-50 text-sm sm:text-base py-2.5"
                 onClick={() => {
                   if (window.confirm('Are you sure you want to deactivate your account? You can reactivate it later by logging in.')) {
                     // Handle account deactivation

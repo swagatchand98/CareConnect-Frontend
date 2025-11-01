@@ -10,7 +10,7 @@ interface PaymentFormProps {
   bookingId: string;
   amount: number;
   onSuccess?: () => void;
-  onError?: (error: any) => void;
+  onError?: (error: Error | unknown) => void;
 }
 
 const PaymentForm: React.FC<PaymentFormProps> = ({ 
@@ -145,35 +145,37 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
           } else {
             router.push(`/booking/${bookingId}`);
           }
-        } catch (paymentError: any) {
+        } catch (paymentError: Error | unknown) {
           // Handle payment confirmation errors specifically
+          const errorMessage = paymentError instanceof Error ? paymentError.message : 'Unknown error occurred';
           console.error('Payment confirmation error:', paymentError);
-          setError(paymentError.message || 'Your payment could not be processed. Please try again or use a different payment method.');
+          setError(errorMessage || 'Your payment could not be processed. Please try again or use a different payment method.');
           setIsLoading(false);
           setPaymentStep('input');
           if (onError) {
             onError(paymentError);
           }
         }
-      } catch (err: any) {
+      } catch (err: Error | unknown) {
         // Handle payment intent creation errors
+        const error = err as { response?: { status: number }, message?: string };
         console.error('Payment intent creation error:', err);
         
         // Provide more specific error messages based on error type
-        if (err.response?.status === 400) {
+        if (error.response?.status === 400) {
           setError('Invalid payment request. Please check your details and try again.');
-        } else if (err.response?.status === 401) {
+        } else if (error.response?.status === 401) {
           setError('Authentication error. Please log in again.');
           // Redirect to login after a delay
           setTimeout(() => router.push('/auth/login'), 3000);
-        } else if (err.response?.status === 403) {
+        } else if (error.response?.status === 403) {
           setError('You are not authorized to make this payment.');
-        } else if (err.response?.status === 404) {
+        } else if (error.response?.status === 404) {
           setError('The booking was not found. It may have been cancelled or deleted.');
-        } else if (err.message?.includes('network')) {
+        } else if (error.message?.includes('network')) {
           setError('Network error. Please check your internet connection and try again.');
         } else {
-          setError(err.message || 'An unexpected error occurred during payment processing. Please try again later.');
+          setError(error.message || 'An unexpected error occurred during payment processing. Please try again later.');
         }
         
         setIsLoading(false);
@@ -182,7 +184,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
           onError(err);
         }
       }
-    } catch (err: any) {
+    } catch (err: Error | unknown) {
       // Handle any other unexpected errors
       console.error('Unexpected payment error:', err);
       setError('An unexpected error occurred. Please try again later.');

@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 import Image from 'next/image';
 import useServices from '@/hooks/useServices';
 import { ServiceCategory } from '@/services/serviceService';
@@ -23,8 +22,9 @@ const CategoryList: React.FC<CategoryListProps> = ({
       try {
         const response = await fetchServiceCategories();
         setCategories(response.categories);
-      } catch (err: any) {
-        console.error('Error loading categories:', err);
+      } catch (err: unknown) {
+        const error = err as Error;
+        console.error('Error loading categories:', error);
         // Error handling is now done in the hook
       }
     };

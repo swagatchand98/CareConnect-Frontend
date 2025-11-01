@@ -29,11 +29,11 @@ const createMockService = (id: string): Service => ({
 });
 
 // Direct API call function to avoid hooks in useEffect
-const fetchServiceById = async (serviceId: string): Promise<any> => {
+const fetchServiceById = async (serviceId: string): Promise<{ service?: Service } | null> => {
   try {
     const response = await api.get(`/services/${serviceId}`);
-    return response.data ? (response.data as any).data : null;
-  } catch (error: any) {
+    return response.data ? (response.data as { data: { service?: Service } }).data : null;
+  } catch (error: unknown) {
     console.error('Error fetching service:', error);
     throw error;
   }
@@ -45,7 +45,7 @@ interface ServiceDetailsClientProps {
 
 export default function ServiceDetailsClient({ serviceId }: ServiceDetailsClientProps) {
   const router = useRouter();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, token } = useAuth();
   
   // Use static states to avoid infinite update loops
   const [service, setService] = useState<Service | null>(null);
@@ -107,7 +107,7 @@ export default function ServiceDetailsClient({ serviceId }: ServiceDetailsClient
           setService(mockService);
           setError('Service data could not be loaded. Showing fallback content.');
         }
-      } catch (err: any) {
+      } catch (err: Error | unknown) {
         // Clear the timeout since we got an error
         clearTimeout(timeoutId);
         
@@ -117,13 +117,13 @@ export default function ServiceDetailsClient({ serviceId }: ServiceDetailsClient
         const mockService = createMockService(serviceId);
         setService(mockService);
         
-        if (err.name === 'AbortError') {
+        if (err instanceof Error && err.name === 'AbortError') {
           setError('Request timed out. Using fallback content.');
         } else {
           setError('Failed to load service details. Using fallback content.');
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Outer error loading service:', err);
       
       // Use mock service as fallback
@@ -150,7 +150,9 @@ export default function ServiceDetailsClient({ serviceId }: ServiceDetailsClient
     }
   }, [serviceId, loadService]);
   
-  const handleBookNow = () => {
+
+
+  const handleBookNow = async () => {
     console.log('Book Now clicked for service:', service);
     
     if (!service) {
@@ -165,7 +167,7 @@ export default function ServiceDetailsClient({ serviceId }: ServiceDetailsClient
       return;
     }
     
-    // Show booking form
+    // Proceed directly to booking form
     console.log('Showing booking form for service:', service._id);
     setShowBookingForm(true);
     
@@ -180,6 +182,7 @@ export default function ServiceDetailsClient({ serviceId }: ServiceDetailsClient
       }
     }, 100);
   };
+
   
   if (isLoading || !service) {
     return (
@@ -330,20 +333,20 @@ export default function ServiceDetailsClient({ serviceId }: ServiceDetailsClient
       {user ? <EnhancedHeader user={user} /> : <PublicHeader />}
       
       <main className="flex-grow">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-          <div className="mb-8">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+          <div className="mb-4 sm:mb-6 lg:mb-8">
             <button 
               onClick={() => router.back()}
               className="group flex items-center text-gray-600 hover:text-gray-900 transition-colors duration-200"
             >
-              <svg className="w-5 h-5 mr-2 transform group-hover:-translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 transform group-hover:-translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
               </svg>
-              Back
+              <span className="text-sm sm:text-base">Back</span>
             </button>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             {/* Service Details */}
             <div className="lg:col-span-2">
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-shadow duration-300 hover:shadow-md">
@@ -416,6 +419,7 @@ export default function ServiceDetailsClient({ serviceId }: ServiceDetailsClient
                           </svg>
                           Flexible scheduling
                         </div>
+
                       </div>
                       
                       <button
@@ -427,7 +431,7 @@ export default function ServiceDetailsClient({ serviceId }: ServiceDetailsClient
                       
                       {!isAuthenticated && (
                         <p className="text-xs text-gray-500 mt-3 text-center">
-                          You'll be asked to sign in to complete your booking
+                          You&apos;ll be asked to sign in to complete your booking
                         </p>
                       )}
                     </div>

@@ -11,7 +11,7 @@ interface AddressSelectorProps {
 }
 
 const AddressSelector: React.FC<AddressSelectorProps> = ({ className = '' }) => {
-  const { defaultAddress, addresses, fetchAddresses, fetchDefaultAddress, makeDefaultAddress, removeAddress, isLoading, dataInitialized } = useAddress();
+  const { defaultAddress, addresses, fetchAddresses, fetchDefaultAddress, makeDefaultAddress, removeAddress, isLoading } = useAddress();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [isEditingAddress, setIsEditingAddress] = useState(false);
@@ -141,19 +141,19 @@ const AddressSelector: React.FC<AddressSelectorProps> = ({ className = '' }) => 
 
       {/* Address dropdown */}
       {isDropdownOpen && (
-        <div className="absolute top-full left-0 mt-2 w-80 bg-white rounded-md shadow-lg z-50">
+        <div className="absolute top-full left-0 mt-2 w-72 sm:w-80 bg-white rounded-md shadow-lg z-50">
           <div className="p-3 border-b border-gray-200">
-            <h3 className="font-medium text-gray-900">Select a delivery address</h3>
+            <h3 className="font-medium text-gray-900 text-sm sm:text-base">Select a delivery address</h3>
           </div>
 
           {/* Address list */}
-          <div className="max-h-60 overflow-y-auto">
+          <div className="max-h-48 sm:max-h-60 overflow-y-auto">
             {addresses.length === 0 ? (
-              <div className="p-6 text-center">
-                <p className="text-gray-500 mb-4">No addresses saved</p>
+              <div className="p-4 sm:p-6 text-center">
+                <p className="text-gray-500 mb-3 sm:mb-4 text-sm sm:text-base">No addresses saved</p>
                 <button
                   onClick={handleAddAddress}
-                  className="inline-flex items-center justify-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors"
+                  className="inline-flex items-center justify-center px-3 sm:px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors text-sm"
                 >
                   <PlusIcon className="h-4 w-4 mr-1" />
                   Add your first address
@@ -164,19 +164,19 @@ const AddressSelector: React.FC<AddressSelectorProps> = ({ className = '' }) => 
                 <div
                   key={address._id}
                   onClick={() => handleSelectAddress(address)}
-                  className={`p-3 cursor-pointer hover:bg-gray-50 ${
+                  className={`p-2 sm:p-3 cursor-pointer hover:bg-gray-50 transition-colors ${
                     address.isDefault ? 'bg-blue-50' : ''
                   }`}
                 >
                   <div className="flex items-start justify-between">
-                    <div className="flex items-start flex-1">
-                      <MapPinIcon className={`h-5 w-5 mt-0.5 mr-2 ${address.isDefault ? 'text-blue-600' : 'text-gray-400'}`} />
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900">
+                    <div className="flex items-start flex-1 min-w-0">
+                      <MapPinIcon className={`h-4 w-4 sm:h-5 sm:w-5 mt-0.5 mr-2 flex-shrink-0 ${address.isDefault ? 'text-blue-600' : 'text-gray-400'}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-gray-900 text-sm sm:text-base">
                           {address.name} <span className="text-xs font-normal text-gray-500 ml-1">({address.type})</span>
                         </div>
-                        <div className="text-sm text-gray-600">{address.street}</div>
-                        <div className="text-sm text-gray-600">
+                        <div className="text-xs sm:text-sm text-gray-600 break-words">{address.street}</div>
+                        <div className="text-xs sm:text-sm text-gray-600">
                           {address.city}, {address.state} {address.zipCode}
                         </div>
                         {address.isDefault && (
@@ -184,18 +184,18 @@ const AddressSelector: React.FC<AddressSelectorProps> = ({ className = '' }) => 
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2 ml-2">
+                    <div className="flex items-center space-x-1 sm:space-x-2 ml-2 flex-shrink-0">
                       <button 
                         onClick={(e) => handleEditAddress(e, address)}
-                        className="p-1 text-gray-500 hover:text-blue-600 hover:bg-gray-100 rounded-full"
+                        className="p-1 text-gray-500 hover:text-blue-600 hover:bg-gray-100 rounded-full transition-colors"
                       >
-                        <PencilIcon className="h-4 w-4" />
+                        <PencilIcon className="h-3 w-3 sm:h-4 sm:w-4" />
                       </button>
                       <button 
                         onClick={(e) => handleDeleteAddress(e, address._id)}
-                        className="p-1 text-gray-500 hover:text-red-600 hover:bg-gray-100 rounded-full"
+                        className="p-1 text-gray-500 hover:text-red-600 hover:bg-gray-100 rounded-full transition-colors"
                       >
-                        <TrashIcon className="h-4 w-4" />
+                        <TrashIcon className="h-3 w-3 sm:h-4 sm:w-4" />
                       </button>
                     </div>
                   </div>
@@ -208,9 +208,9 @@ const AddressSelector: React.FC<AddressSelectorProps> = ({ className = '' }) => 
           <div className="p-3 border-t border-gray-200">
             <button
               onClick={handleAddAddress}
-              className="address-selector-add-button flex items-center text-sm font-medium text-primary-600 hover:text-primary-700"
+              className="address-selector-add-button flex items-center text-xs sm:text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
             >
-              <PlusIcon className="h-4 w-4 mr-1" />
+              <PlusIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
               Add a new address
             </button>
           </div>

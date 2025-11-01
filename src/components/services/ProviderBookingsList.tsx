@@ -62,8 +62,9 @@ const ProviderBookingsList: React.FC<ProviderBookingsListProps> = ({
       await updateStatus(bookingId, newStatus);
       // Refresh bookings after status update
       loadBookings();
-    } catch (err: any) {
-      setUpdateError(err.message || 'Failed to update booking status');
+    } catch (err: unknown) {
+      const error = err as Error;
+      setUpdateError(error.message || 'Failed to update booking status');
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -137,7 +138,7 @@ const ProviderBookingsList: React.FC<ProviderBookingsListProps> = ({
   if (bookings.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-500">You don't have any bookings yet.</p>
+        <p className="text-gray-500">You don&apos;t have any bookings yet.</p>
       </div>
     );
   }
@@ -222,7 +223,7 @@ const ProviderBookingsList: React.FC<ProviderBookingsListProps> = ({
               {getNextStatusOptions(booking.status).map((option) => (
                 <button
                   key={option.value}
-                  onClick={() => handleUpdateStatus(booking._id, option.value as any)}
+                  onClick={() => handleUpdateStatus(booking._id, option.value as 'confirmed' | 'in-progress' | 'completed')}
                   className="px-3 py-1 text-sm bg-blue-100 text-blue-800 rounded-md hover:bg-blue-200 transition-colors"
                   disabled={isUpdatingStatus}
                 >

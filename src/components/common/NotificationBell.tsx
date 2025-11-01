@@ -9,24 +9,72 @@ import type { Notification } from '@/services/notificationService';
 import { useAuth } from '@/contexts/AuthContext';
 
 const NotificationBell: React.FC = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [pollingInterval, setPollingInterval] = useState<number>(60000); // Start with 1 minute
+  const [lastFetchTime, setLastFetchTime] = useState<number>(0);
+  const [isRateLimited, setIsRateLimited] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
 
-  // Fetch unread notification count
-  const fetchUnreadCount = async () => {
+  // Fetch unread notification count with intelligent rate limiting and caching
+  const fetchUnreadCount = async (force: boolean = false) => {
     if (!isAuthenticated) return;
+    
+    const now = Date.now();
+    
+    // Implement caching - don't fetch if we just fetched recently (unless forced)
+    if (!force && now - lastFetchTime < 30000) { // 30 seconds minimum between requests
+      return;
+    }
+    
+    // Skip if we're currently rate limited
+    if (isRateLimited && now - lastFetchTime < pollingInterval) {
+      return;
+    }
     
     try {
       const count = await notificationService.getUnreadNotificationCount();
       setUnreadCount(count);
-    } catch (err) {
+      setError(null);
+      setLastFetchTime(now);
+      setIsRateLimited(false);
+      
+      // Reset polling interval to normal on success
+      if (pollingInterval > 60000) {
+        setPollingInterval(60000); // Reset to 1 minute
+      }
+      
+    } catch (err: any) {
       console.error('Error fetching unread count:', err);
+      setLastFetchTime(now);
+      
+      // Handle rate limiting specifically
+      if (err?.response?.status === 429) {
+        console.warn('Rate limited - implementing exponential backoff');
+        setIsRateLimited(true);
+        
+        // Exponential backoff: double the interval, max 10 minutes
+        const newInterval = Math.min(pollingInterval * 2, 600000);
+        setPollingInterval(newInterval);
+        
+        setError(`Rate limited - next update in ${Math.round(newInterval / 60000)} minutes`);
+        return;
+      }
+      
+      // Handle other errors
+      if (err?.response?.status >= 500) {
+        setError('Server error - notifications may be delayed');
+        // Increase interval slightly for server errors
+        setPollingInterval(Math.min(pollingInterval * 1.5, 300000)); // Max 5 minutes
+      } else if (err?.response?.status >= 400) {
+        setError('Authentication error - please refresh the page');
+      }
     }
   };
 
@@ -127,14 +175,47 @@ const NotificationBell: React.FC = () => {
   // Fetch unread count on initial load and when authentication state changes
   useEffect(() => {
     if (isAuthenticated) {
-      fetchUnreadCount();
-      
-      // Set up polling for unread count (every 30 seconds)
-      const interval = setInterval(fetchUnreadCount, 30000);
-      
-      return () => clearInterval(interval);
+      fetchUnreadCount(true); // Force initial fetch
+    } else {
+      // Clear data when not authenticated
+      setUnreadCount(0);
+      setNotifications([]);
+      setError(null);
+      setIsRateLimited(false);
+      setPollingInterval(60000); // Reset interval
     }
   }, [isAuthenticated]);
+
+  // Set up dynamic polling based on current interval
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    // Clear existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+
+    // Set up new interval with current polling interval
+    intervalRef.current = setInterval(() => {
+      fetchUnreadCount();
+    }, pollingInterval);
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [isAuthenticated, pollingInterval]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
 
   // If not authenticated, don't render the notification bell
   if (!isAuthenticated) {

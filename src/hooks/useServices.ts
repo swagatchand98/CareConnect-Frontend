@@ -3,10 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
-  Service,
-  ServiceCategory,
   ServiceFormData,
-  ServiceResponse,
   ServicesResponse,
   ServiceCategoriesResponse,
   getServices,
@@ -165,7 +162,7 @@ export const useServices = () => {
   }, []);
   
   // Get all services with pagination and filtering
-  const fetchServices = async (
+  const fetchServices = useCallback(async (
     page: number = 1,
     limit: number = 10,
     filters?: {
@@ -188,7 +185,7 @@ export const useServices = () => {
       setIsLoading(false);
       throw err;
     }
-  };
+  }, []); // Empty dependency array since this function doesn't depend on any state
   
   // Get service by ID
   const fetchServiceById = async (serviceId: string) => {

@@ -13,6 +13,19 @@ interface Slide {
 const InteractiveSlider = () => {
   const [activeSlide, setActiveSlide] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Check if mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const slides: Slide[] = [
     { 
@@ -91,31 +104,32 @@ const InteractiveSlider = () => {
     }
   };
 
-  const nextSlide = () => {
-    setActiveSlide(prev => (prev + 1) % slides.length);
-  };
-
-  const prevSlide = () => {
-    setActiveSlide(prev => prev === 0 ? slides.length - 1 : prev - 1);
-  };
-
-  // Create visible slides array (active slide + next 2 slides)
+  // Create visible slides array - mobile shows only active, desktop shows 3 slides
   const getVisibleSlides = (): (Slide & { position: number })[] => {
     const visibleSlides = [];
-    for (let i = 0; i < 3; i++) {
-      const slideIndex = (activeSlide + i) % slides.length;
+    if (isMobile) {
+      // Mobile: show only active slide
       visibleSlides.push({
-        ...slides[slideIndex],
-        position: i
+        ...slides[activeSlide],
+        position: 0
       });
+    } else {
+      // Desktop: show active + next 2 slides
+      for (let i = 0; i < 3; i++) {
+        const slideIndex = (activeSlide + i) % slides.length;
+        visibleSlides.push({
+          ...slides[slideIndex],
+          position: i
+        });
+      }
     }
     return visibleSlides;
   };
 
-const slideVariants = {
-    active: (custom?: number) => ({
-        width: "min(820px, 45vw)",
-        height: "min(480px, 50vh)",
+  const slideVariants = {
+    active: () => ({
+        width: isMobile ? "280px" : "min(820px, 45vw)",
+        height: isMobile ? "400px" : "min(480px, 50vh)",
         filter: 'brightness(1)',
         zIndex: 10,
         transition: {
@@ -125,9 +139,9 @@ const slideVariants = {
             mass: 0.8
         }
     }),
-    inactive: (custom?: number) => ({
-        width: "min(325px, 25vw)",
-        height: "min(480px, 50vh)",
+    inactive: () => ({
+        width: isMobile ? "100px" : "min(325px, 25vw)",
+        height: isMobile ? "400px" : "min(480px, 50vh)",
         filter: 'brightness(0.7)',
         zIndex: 5,
         transition: {
@@ -145,7 +159,7 @@ const slideVariants = {
             damping: 25
         }
     }
-};
+  };
 
   const contentVariants = {
     hidden: {
@@ -202,10 +216,10 @@ const slideVariants = {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center overflow-hidden w-full max-w-[1746px] px-4 md:px-8 lg:px-10 mt-10 mx-auto">
-      <div className="flex items-center justify-center gap-4 mb-8 w-full overflow-x-auto">
+    <div className={`flex flex-col items-center justify-center overflow-hidden w-full max-w-[1746px] px-2 sm:px-4 md:px-8 lg:px-10 mt-6 sm:mt-8 lg:mt-10 mx-auto ${isMobile ? 'max-w-sm' : ''}`}>
+      <div className={`flex items-center justify-center ${isMobile ? 'gap-2' : 'gap-4'} mb-6 sm:mb-8 w-full overflow-x-auto`}>
         <motion.div 
-          className="flex items-center justify-center gap-3 mx-auto"
+          className={`flex items-center justify-center ${isMobile ? 'gap-1' : 'gap-3'} mx-auto`}
           variants={containerVariants}
           initial="hidden"
           animate="visible"
@@ -257,11 +271,11 @@ const slideVariants = {
                   alt={slide.title}
                   className="absolute inset-0 w-full h-full object-cover"
                 />
-                <div className="text-gray-600 hover:text-gray-800 bg-transparent p-2 px-2 z-10 absolute top-5 right-5 rounded-xl backdrop-blur-2xl shadow-2xl">
+                <div className={`text-gray-600 hover:text-gray-800 bg-transparent p-1 sm:p-2 z-10 absolute ${isMobile ? 'top-3 right-3' : 'top-5 right-5'} rounded-xl backdrop-blur-2xl shadow-2xl`}>
                   <AnimatePresence>
                     {slide.position === 0 && (
                       <motion.p 
-                        className="text-lg opacity-90"
+                        className={`${isMobile ? 'text-sm' : 'text-lg'} opacity-90`}
                         variants={contentVariants}
                         initial="hidden"
                         animate="visible"
@@ -296,7 +310,7 @@ const slideVariants = {
       </div>
 
       {/* Progress bar */}
-      <div className="mt-4 w-64 h-1 bg-gray-300 rounded-full overflow-hidden mx-auto">
+      <div className={`mt-3 sm:mt-4 ${isMobile ? 'w-48' : 'w-64'} h-1 bg-gray-300 rounded-full overflow-hidden mx-auto`}>
         <motion.div
           className="h-full bg-blue-500"
           initial={{ width: '0%' }}

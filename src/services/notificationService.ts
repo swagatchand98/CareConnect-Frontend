@@ -25,12 +25,6 @@ export interface UnreadCountResponse {
   count: number;
 }
 
-// Define API response interfaces
-interface ApiResponse<T> {
-  status: string;
-  data: T;
-}
-
 /**
  * Get user notifications with pagination
  * @param page - Page number

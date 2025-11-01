@@ -1,17 +1,18 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import ProviderHeader from '@/components/layout/ProviderHeader';
 import Footer from '@/components/layout/Footer';
 import Button from '@/components/common/Button';
 import ConnectAccountSetup from '@/components/provider/ConnectAccountSetup';
-import { TextField, MenuItem, Select, FormControl, InputLabel, Pagination } from '@mui/material';
+import { MenuItem, Select, FormControl, InputLabel, Pagination } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { getPaymentHistory } from '@/services/paymentService';
+import { PaymentType, PaymentStatus } from '@/types/payment';
 import { 
   EarningsHistoryItem, 
   EarningsFilters,
@@ -44,22 +45,9 @@ const ProviderEarningsPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [itemsPerPage] = useState(10);
-
-  useEffect(() => {
-    // Check if user is authenticated and is a provider
-    if (!authLoading) {
-      if (!isAuthenticated) {
-        router.push('/auth/login?redirect=/dashboard/provider/earnings');
-      } else if (user?.role !== 'provider') {
-        router.push('/dashboard');
-      } else {
-        fetchEarningsData();
-      }
-    }
-  }, [user, authLoading, router, isAuthenticated]);
   
   // Fetch earnings data from API
-  const fetchEarningsData = async () => {
+  const fetchEarningsData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -86,14 +74,14 @@ const ProviderEarningsPage: React.FC = () => {
         let completed = 0;
         
         payments.forEach(payment => {
-          if (payment.type === 'BOOKING') {
-            if (payment.status === 'COMPLETED') {
+          if (payment.type === PaymentType.BOOKING) {
+            if (payment.status === PaymentStatus.COMPLETED) {
               total += payment.providerAmount;
               completed++;
-            } else if (payment.status === 'PENDING') {
+            } else if (payment.status === PaymentStatus.PENDING) {
               pending += payment.providerAmount;
             }
-          } else if (payment.type === 'REFUND') {
+          } else if (payment.type === PaymentType.REFUND) {
             // Subtract refunds from total earnings
             total -= Math.abs(payment.providerAmount);
           }
@@ -130,13 +118,27 @@ const ProviderEarningsPage: React.FC = () => {
       }
       
       setIsLoading(false);
-    } catch (err: any) {
+    } catch (err: Error | unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load earnings data';
       console.error('Error fetching earnings data:', err);
-      setError(err.message || 'Failed to load earnings data');
+      setError(errorMessage);
       setIsLoading(false);
     }
-  };
+  }, [itemsPerPage]);
 
+  useEffect(() => {
+    // Check if user is authenticated and is a provider
+    if (!authLoading) {
+      if (!isAuthenticated) {
+        router.push('/auth/login?redirect=/dashboard/provider/earnings');
+      } else if (user?.role !== 'provider') {
+        router.push('/dashboard');
+      } else {
+        fetchEarningsData();
+      }
+    }
+  }, [user, authLoading, router, isAuthenticated, fetchEarningsData]);
+  
   // Format currency
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -221,11 +223,10 @@ const ProviderEarningsPage: React.FC = () => {
         }
         
         // Apply service filter
+        // Note: Service filtering is not available in client-side fallback mode
+        // since payment data doesn't include populated booking/service details
         if (serviceFilter !== 'all') {
-          filteredPayments = filteredPayments.filter(payment => {
-            const serviceType = payment.bookingId?.serviceId?.type;
-            return serviceType && serviceType.toLowerCase() === serviceFilter.toLowerCase();
-          });
+          console.warn('Service filtering not available in fallback mode - booking details not populated');
         }
         
         // Transform filtered payments to earnings history format
@@ -238,9 +239,10 @@ const ProviderEarningsPage: React.FC = () => {
       }
       
       setIsLoading(false);
-    } catch (err: any) {
+    } catch (err: Error | unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to apply filters';
       console.error('Error applying filters:', err);
-      setError(err.message || 'Failed to apply filters');
+      setError(errorMessage);
       setIsLoading(false);
     }
   };
@@ -410,7 +412,7 @@ const ProviderEarningsPage: React.FC = () => {
                     id="status-filter"
                     value={statusFilter}
                     label="Payment Status"
-                    onChange={handleStatusFilterChange as any}
+                    onChange={(event) => handleStatusFilterChange(event as React.ChangeEvent<{ value: unknown }>)}
                   >
                     <MenuItem value="all">All Statuses</MenuItem>
                     <MenuItem value="paid">Paid</MenuItem>
@@ -425,7 +427,7 @@ const ProviderEarningsPage: React.FC = () => {
                     id="service-filter"
                     value={serviceFilter}
                     label="Service Type"
-                    onChange={handleServiceFilterChange as any}
+                    onChange={(event) => handleServiceFilterChange(event as React.ChangeEvent<{ value: unknown }>)}
                   >
                     <MenuItem value="all">All Services</MenuItem>
                     <MenuItem value="elderly-care">Elderly Care</MenuItem>

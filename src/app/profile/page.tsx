@@ -68,14 +68,14 @@ export default function Profile() {
     <div className="min-h-screen flex flex-col">
       <EnhancedHeader user={user} />
       
-      <main className="flex-grow py-10">
-        <div className="container mx-auto px-4">
+      <main className="flex-grow py-6 sm:py-10">
+        <div className="container mx-auto px-4 sm:px-6">
           <div className="max-w-3xl mx-auto">
-            <h1 className="text-3xl font-bold mb-8">My Profile</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8">My Profile</h1>
             
-            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-              <div className="flex items-center mb-6">
-                <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden mr-6">
+            <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6 sm:mb-8">
+              <div className="flex flex-col sm:flex-row items-center sm:items-start mb-6 gap-4 sm:gap-6">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
                   {user.avatar ? (
                     <img 
                       src={user.avatar} 
@@ -83,14 +83,14 @@ export default function Profile() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <span className="text-4xl text-gray-600 font-medium">
+                    <span className="text-3xl sm:text-4xl text-gray-600 font-medium">
                       {user.name.charAt(0).toUpperCase()}
                     </span>
                   )}
                 </div>
-                <div>
-                  <h2 className="text-2xl font-semibold">{user.name}</h2>
-                  <p className="text-gray-600">{user.email}</p>
+                <div className="text-center sm:text-left">
+                  <h2 className="text-xl sm:text-2xl font-semibold">{user.name}</h2>
+                  <p className="text-sm sm:text-base text-gray-600">{user.email}</p>
                 </div>
               </div>
               
@@ -153,18 +153,18 @@ export default function Profile() {
                   </div>
                 </div>
                 
-                <div className="mt-6 flex justify-end">
+                <div className="mt-6 flex flex-col sm:flex-row justify-end gap-3 sm:gap-0">
                   {isEditing ? (
                     <>
                       <Button 
                         type="button" 
                         variant="secondary" 
-                        className="mr-4"
+                        className="w-full sm:w-auto sm:mr-4 order-2 sm:order-1"
                         onClick={() => setIsEditing(false)}
                       >
                         Cancel
                       </Button>
-                      <Button type="submit">
+                      <Button type="submit" className="w-full sm:w-auto order-1 sm:order-2">
                         Save Changes
                       </Button>
                     </>
@@ -172,6 +172,7 @@ export default function Profile() {
                     <Button 
                       type="button" 
                       onClick={() => setIsEditing(true)}
+                      className="w-full sm:w-auto"
                     >
                       Edit Profile
                     </Button>
@@ -180,36 +181,36 @@ export default function Profile() {
               </form>
             </div>
             
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold mb-4">Account Settings</h2>
+            <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-semibold mb-4">Account Settings</h2>
               
               <div className="space-y-4">
-                <div className="flex justify-between items-center py-3 border-b">
-                  <div>
-                    <h3 className="font-medium">Change Password</h3>
-                    <p className="text-sm text-gray-600">Update your password for security</p>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-3 border-b gap-3 sm:gap-0">
+                  <div className="flex-1">
+                    <h3 className="font-medium text-sm sm:text-base">Change Password</h3>
+                    <p className="text-xs sm:text-sm text-gray-600">Update your password for security</p>
                   </div>
-                  <Button variant="secondary">
+                  <Button variant="secondary" className="w-full sm:w-auto text-sm">
                     Change
                   </Button>
                 </div>
                 
-                <div className="flex justify-between items-center py-3 border-b">
-                  <div>
-                    <h3 className="font-medium">Notification Settings</h3>
-                    <p className="text-sm text-gray-600">Manage your email and push notifications</p>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-3 border-b gap-3 sm:gap-0">
+                  <div className="flex-1">
+                    <h3 className="font-medium text-sm sm:text-base">Notification Settings</h3>
+                    <p className="text-xs sm:text-sm text-gray-600">Manage your email and push notifications</p>
                   </div>
-                  <Button variant="secondary">
+                  <Button variant="secondary" className="w-full sm:w-auto text-sm">
                     Manage
                   </Button>
                 </div>
                 
-                <div className="flex justify-between items-center py-3">
-                  <div>
-                    <h3 className="font-medium text-red-600">Delete Account</h3>
-                    <p className="text-sm text-gray-600">Permanently delete your account and all data</p>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-3 gap-3 sm:gap-0">
+                  <div className="flex-1">
+                    <h3 className="font-medium text-red-600 text-sm sm:text-base">Delete Account</h3>
+                    <p className="text-xs sm:text-sm text-gray-600">Permanently delete your account and all data</p>
                   </div>
-                  <Button variant="secondary" className="text-red-600">
+                  <Button variant="secondary" className="text-red-600 w-full sm:w-auto text-sm">
                     Delete
                   </Button>
                 </div>

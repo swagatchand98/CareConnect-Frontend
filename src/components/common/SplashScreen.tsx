@@ -91,7 +91,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ duration = 3000 }) => {
               transition={{ delay: 0.3, duration: 0.5 }}
               className="text-2xl font-bold text-gray-800"
             >
-              Urban Caregiving
+              CareConnect
             </motion.h1>
             
             <motion.div

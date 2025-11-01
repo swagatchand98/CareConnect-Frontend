@@ -15,6 +15,7 @@ interface BookingFormProps {
     amount: number;
     type: 'fixed' | 'hourly';
   };
+  // providerId is used in the form data initialization
   providerId: string;
   providerName: string;
 }
@@ -23,11 +24,10 @@ const BookingForm: React.FC<BookingFormProps> = ({
   serviceId,
   serviceName,
   servicePrice,
-  providerId,
   providerName
 }) => {
-  const { user, isAuthenticated } = useAuth();
-  const { createNewBooking, isLoading, error } = useBooking();
+  const { isAuthenticated } = useAuth();
+  const { createNewBooking, isLoading } = useBooking();
   const router = useRouter();
   
   const [formData, setFormData] = useState<BookingFormData>({
@@ -73,7 +73,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
       setFormData((prev) => ({
         ...prev,
         [parent]: {
-          ...prev[parent as keyof BookingFormData] as any,
+          ...(prev[parent as keyof BookingFormData] as Record<string, string>),
           [child]: value
         }
       }));
@@ -166,9 +166,10 @@ const BookingForm: React.FC<BookingFormProps> = ({
       setTimeout(() => {
         router.push(`/payment/${response.booking._id}`);
       }, 1500);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { message?: string };
       setFormErrors({
-        general: err.message || 'Failed to create booking. Please try again.'
+        general: error.message || 'Failed to create booking. Please try again.'
       });
     }
   };

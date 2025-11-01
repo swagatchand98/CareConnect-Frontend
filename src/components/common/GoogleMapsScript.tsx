@@ -21,7 +21,7 @@ interface GoogleMapsScriptProps {
  * Component to load Google Maps API script globally
  */
 const GoogleMapsScript: React.FC<GoogleMapsScriptProps> = ({ children }) => {
-  const { isLoaded, loadError } = useLoadScript({
+  const { loadError } = useLoadScript({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
     libraries,
   });

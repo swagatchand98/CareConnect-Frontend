@@ -176,8 +176,9 @@ const ProviderSettingsPage: React.FC = () => {
       setTimeout(() => {
         setSuccessMessage(null);
       }, 3000);
-    } catch (error: any) {
-      setErrorMessage(error.message || 'Failed to update settings');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update settings';
+      setErrorMessage(errorMessage);
     } finally {
       setIsSaving(false);
     }
@@ -310,7 +311,7 @@ const ProviderSettingsPage: React.FC = () => {
                     margin="normal"
                     multiline
                     rows={4}
-                    placeholder="Tell clients about yourself and your caregiving approach"
+                    placeholder="Tell clients about yourself and your care-connect approach"
                   />
                 </div>
                 
@@ -364,7 +365,7 @@ const ProviderSettingsPage: React.FC = () => {
                       id="service-types"
                       multiple
                       value={formData.serviceTypes}
-                      onChange={handleServiceTypesChange as any}
+                      onChange={(e) => handleServiceTypesChange(e as React.ChangeEvent<{ value: unknown }>)}
                       label="Service Types"
                       renderValue={(selected) => (selected as string[]).join(', ')}
                     >
@@ -521,7 +522,7 @@ const ProviderSettingsPage: React.FC = () => {
                       labelId="payment-method-label"
                       id="payment-method"
                       value={formData.paymentSettings.paymentMethod}
-                      onChange={handlePaymentMethodChange as any}
+                      onChange={(e) => handlePaymentMethodChange(e as React.ChangeEvent<{ value: unknown }>)}
                       label="Payment Method"
                     >
                       <MenuItem value="bank">Direct Bank Deposit</MenuItem>

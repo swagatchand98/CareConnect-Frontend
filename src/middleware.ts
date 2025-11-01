@@ -1,34 +1,11 @@
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-
-// Define protected routes and their required roles
-const protectedRoutes = [
-  {
-    path: '/dashboard/admin',
-    roles: ['admin'],
-  },
-  {
-    path: '/dashboard/provider',
-    roles: ['provider', 'admin'],
-  },
-  {
-    path: '/dashboard/user',
-    roles: ['user', 'provider', 'admin'],
-  },
-];
 
 // This function can be marked `async` if using `await` inside
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+export function middleware() {
   
   // TEMPORARILY DISABLED: Role-based access control
   // The authentication system uses localStorage instead of cookies
   // Client-side protection will be handled by the useAuthorization hook
-  
-  // Check if the route is protected
-  const protectedRoute = protectedRoutes.find(route => 
-    pathname.startsWith(route.path)
-  );
   
   // Skip server-side auth checks since we're using localStorage
   // This prevents redirect loops

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+// Removed unused import
 import Button from '@/components/common/Button';
 import axios from '@/lib/axios';
 import * as providerConnectService from '@/services/providerConnectService';
@@ -21,7 +21,7 @@ interface ConnectAccountDetails {
 }
 
 const ConnectAccountSetup: React.FC = () => {
-  const router = useRouter();
+  // Removed unused router
   const [isLoading, setIsLoading] = useState(false);
   const [accountDetails, setAccountDetails] = useState<ConnectAccountDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -36,12 +36,13 @@ const ConnectAccountSetup: React.FC = () => {
       const response = await providerConnectService.getConnectAccount();
       setAccountDetails(response.data);
       setError(null);
-    } catch (err: any) {
-      if (err.response?.status === 404) {
+    } catch (err: unknown) {
+      const error = err as { response?: { status?: number, data?: { message?: string } } };
+      if (error.response?.status === 404) {
         // No account found, which is expected for new providers
         setAccountDetails(null);
       } else {
-        setError(err.response?.data?.message || 'Failed to fetch account details');
+        setError(error.response?.data?.message || 'Failed to fetch account details');
       }
     } finally {
       setIsLoading(false);
@@ -53,8 +54,9 @@ const ConnectAccountSetup: React.FC = () => {
       setIsLoading(true);
       const response = await providerConnectService.createAccountLink();
       window.location.href = response.data.url;
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to create account link');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'Failed to create account link');
       setIsLoading(false);
     }
   };
@@ -64,8 +66,9 @@ const ConnectAccountSetup: React.FC = () => {
       setIsLoading(true);
       const response = await providerConnectService.createLoginLink();
       window.location.href = response.data.url;
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to create login link');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'Failed to create login link');
       setIsLoading(false);
     }
   };
@@ -75,8 +78,9 @@ const ConnectAccountSetup: React.FC = () => {
       setIsLoading(true);
       await providerConnectService.updatePayoutSchedule(schedule as 'manual' | 'daily' | 'weekly' | 'monthly');
       await fetchAccountDetails();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to update payout schedule');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'Failed to update payout schedule');
       setIsLoading(false);
     }
   };
@@ -108,8 +112,9 @@ const ConnectAccountSetup: React.FC = () => {
       alert(`Payout of $${availableBalance.toFixed(2)} requested successfully. It will be processed within 2-3 business days.`);
       
       setIsLoading(false);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to request payout');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'Failed to request payout');
       setIsLoading(false);
     }
   };

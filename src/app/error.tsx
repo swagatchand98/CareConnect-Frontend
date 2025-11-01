@@ -31,7 +31,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
           <h1 className="text-2xl font-bold mb-4">Something Went Wrong</h1>
           
           <p className="text-gray-600 mb-6">
-            We're sorry, but something went wrong. Our team has been notified and is working to fix the issue.
+            We&apos;re sorry, but something went wrong. Our team has been notified and is working to fix the issue.
           </p>
           
           <div className="space-y-4">

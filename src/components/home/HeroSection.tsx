@@ -27,7 +27,7 @@ const HeroSection: React.FC = () => {
           {/* Right Column - Description */}
           <div>
             <p className="text-lg text-gray-700 mb-6">
-              We Provide compassionate home services and caregiving solutions, delivering personalized care and support to families and individuals in need. We're dedicated to enhancing.
+              We Provide compassionate home services and care-connect solutions, delivering personalized care and support to families and individuals in need. We&apos;re dedicated to enhancing.
             </p>
           </div>
         </div>

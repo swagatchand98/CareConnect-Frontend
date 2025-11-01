@@ -3,10 +3,15 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import Input from '../common/Input';
 import Button from '../common/Button';
 import { ProviderOnboardingData, ServiceArea } from '@/services/authService';
+
+// Extended interface to include document URLs
+interface ExtendedProviderOnboardingData extends ProviderOnboardingData {
+  documentUrls?: string[];
+}
 import api from '@/lib/axios';
+import Image from 'next/image';
 
 const ProviderOnboardingForm: React.FC = () => {
   const { user, token } = useAuth();
@@ -22,6 +27,11 @@ const ProviderOnboardingForm: React.FC = () => {
     languagesSpoken: [],
     availability: []
   });
+  
+  // State for certificate files
+  const [certificateFiles, setCertificateFiles] = useState<File[]>([]);
+  const [certificatePreviewUrls, setCertificatePreviewUrls] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
   
   const [errors, setErrors] = useState<{
     serviceCategories?: string;
@@ -233,6 +243,28 @@ const ProviderOnboardingForm: React.FC = () => {
       certifications: prev.certifications?.filter((_, i) => i !== index) || []
     }));
   };
+  
+  // Handle certificate file upload
+  const handleCertificateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      
+      // Create preview URLs for the files
+      const newPreviewUrls = files.map(file => URL.createObjectURL(file));
+      
+      setCertificatePreviewUrls(prev => [...prev, ...newPreviewUrls]);
+      setCertificateFiles(prev => [...prev, ...files]);
+    }
+  };
+  
+  // Remove certificate file
+  const handleRemoveCertificateFile = (index: number) => {
+    setCertificateFiles(prev => prev.filter((_, i) => i !== index));
+    
+    // Revoke the object URL to avoid memory leaks
+    URL.revokeObjectURL(certificatePreviewUrls[index]);
+    setCertificatePreviewUrls(prev => prev.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -254,7 +286,7 @@ const ProviderOnboardingForm: React.FC = () => {
     }).filter((id): id is string => id !== null); // Type guard to filter out nulls
     
     // Update form data with selected values
-    const updatedFormData = {
+    const updatedFormData: ExtendedProviderOnboardingData = {
       ...formData,
       serviceCategories: serviceCategoryIds, // Now sending array of ObjectIds
       serviceAreas: formattedServiceAreas, // Now formatted as objects with city and state
@@ -293,9 +325,38 @@ const ProviderOnboardingForm: React.FC = () => {
     
     // Handle onboarding submission
     setIsSubmitting(true);
+    setIsUploading(certificateFiles.length > 0);
+    
     try {
       if (!token) {
         throw new Error('Authentication token not found');
+      }
+      
+      // Create FormData for file uploads if there are certificate files
+      if (certificateFiles.length > 0) {
+        const formData = new FormData();
+        
+        // Append certificate files
+        certificateFiles.forEach((file) => {
+          formData.append('documents', file);
+        });
+        
+        // Upload certificate files first
+        const uploadResponse = await api.post('/providers/documents', formData, {
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+        
+        // Type assertion for the response data
+        const responseData = uploadResponse.data as { documentUrls?: string[] };
+        
+        // Get document URLs from response
+        const documentUrls = responseData.documentUrls || [];
+        
+        // Add document URLs to the onboarding data
+        updatedFormData.documentUrls = documentUrls;
       }
       
       // Submit onboarding data to backend
@@ -305,13 +366,15 @@ const ProviderOnboardingForm: React.FC = () => {
       
       // Redirect to provider dashboard
       router.push('/dashboard/provider?onboarding=success');
-    } catch (error: any) {
-      console.error('Provider onboarding error:', error);
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } }; message?: string };
+      console.error('Provider onboarding error:', err);
       setErrors({
-        general: error.response?.data?.message || error.message || 'Failed to complete onboarding. Please try again later.'
+        general: err.response?.data?.message || err.message || 'Failed to complete onboarding. Please try again later.'
       });
     } finally {
       setIsSubmitting(false);
+      setIsUploading(false);
     }
   };
 
@@ -340,7 +403,7 @@ const ProviderOnboardingForm: React.FC = () => {
                 name="bio"
                 rows={4}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-black"
-                placeholder="Tell us about yourself, your qualifications, and your caregiving experience"
+                placeholder="Tell us about yourself, your qualifications, and your care-connect experience"
                 value={formData.bio || ''}
                 onChange={handleChange}
               ></textarea>
@@ -423,6 +486,67 @@ const ProviderOnboardingForm: React.FC = () => {
                   </ul>
                 </div>
               )}
+              
+              {/* Certificate File Upload */}
+              <div className="mt-4">
+                <p className="text-sm font-medium mb-2">Upload Certificate Documents</p>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                  <label className="block w-full cursor-pointer">
+                    <div className="flex flex-col items-center justify-center py-2">
+                      <svg className="w-8 h-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                      </svg>
+                      <p className="text-sm text-gray-600">Click to upload or drag and drop</p>
+                      <p className="text-xs text-gray-500 mt-1">PDF, JPG, PNG (Max 5MB)</p>
+                    </div>
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      multiple
+                      onChange={handleCertificateUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+                
+                {/* Certificate Previews */}
+                {certificatePreviewUrls.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-sm font-medium mb-2">Uploaded Certificates:</p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {certificateFiles.map((file, index) => (
+                        <div key={index} className="relative border rounded-lg overflow-hidden bg-gray-50">
+                          {file.type.startsWith('image/') ? (
+                            <div className="relative h-24 w-full">
+                              <Image
+                                src={certificatePreviewUrls[index]}
+                                alt={`Certificate ${index + 1}`}
+                                fill
+                                sizes="100px"
+                                className="object-contain"
+                              />
+                            </div>
+                          ) : (
+                            <div className="h-24 w-full flex items-center justify-center">
+                              <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                              </svg>
+                            </div>
+                          )}
+                          <div className="p-2 text-xs truncate">{file.name}</div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveCertificateFile(index)}
+                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             
             {/* Years of Experience */}
@@ -529,7 +653,7 @@ const ProviderOnboardingForm: React.FC = () => {
               fullWidth
               disabled={isSubmitting}
             >
-              {isSubmitting ? 'Submitting...' : 'Complete Profile'}
+              {isSubmitting ? (isUploading ? 'Uploading Documents...' : 'Submitting...') : 'Complete Profile'}
             </Button>
           </form>
         </div>

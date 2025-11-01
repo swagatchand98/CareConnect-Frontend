@@ -2,7 +2,6 @@
 
 import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import PublicHeader from '@/components/layout/PublicHeader';
 import Footer from '@/components/layout/Footer';
@@ -34,10 +33,10 @@ export default function OfflinePage() {
             </div>
           </div>
           
-          <h1 className="text-2xl font-bold mb-4">You're Offline</h1>
+          <h1 className="text-2xl font-bold mb-4">You&apos;re Offline</h1>
           
           <p className="text-gray-600 mb-6">
-            It looks like you've lost your internet connection. 
+            It looks like you&apos;ve lost your internet connection. 
             Please check your network settings and try again.
           </p>
           

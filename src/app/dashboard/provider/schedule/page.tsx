@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import ProviderHeader from '@/components/layout/ProviderHeader';
@@ -9,8 +9,8 @@ import Button from '@/components/common/Button';
 import TimeSlotManager from '@/components/timeslots/TimeSlotManager';
 import { useTimeSlots } from '@/hooks/useTimeSlots';
 import { useServices } from '@/hooks/useServices';
-import { Booking, getProviderBookings } from '@/services/bookingService';
-import { GroupedTimeSlots, TimeSlot } from '@/services/timeSlotService';
+import { getProviderBookings } from '@/services/bookingService';
+import { GroupedTimeSlots } from '@/services/timeSlotService';
 
 interface CalendarBooking {
   id: string;
@@ -26,7 +26,7 @@ const ProviderSchedulePage: React.FC = () => {
   const router = useRouter();
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const { fetchProviderTimeSlots } = useTimeSlots();
-  const { fetchProviderServices } = useServices();
+  const { /* fetchProviderServices not used */ } = useServices();
   
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('calendar');
@@ -40,35 +40,14 @@ const ProviderSchedulePage: React.FC = () => {
   
   // Get the current date and week dates
   const today = new Date();
-  const currentWeek = Array.from({ length: 7 }, (_, i) => {
+  const currentWeek = Array.from({ length: 7 }, (_, index) => {
     const date = new Date(currentWeekStart);
-    date.setDate(currentWeekStart.getDate() + i);
+    date.setDate(currentWeekStart.getDate() + index);
     return date;
   });
 
   // Load bookings and time slots
-  useEffect(() => {
-    // Check if user is authenticated and is a provider
-    if (!authLoading) {
-      if (!isAuthenticated) {
-        router.push('/auth/login?redirect=/dashboard/provider/schedule');
-      } else if (user?.role !== 'provider') {
-        router.push('/dashboard');
-      } else {
-        loadData();
-      }
-    }
-  }, [user, authLoading, router, isAuthenticated]);
-  
-  // Load data when week or month changes
-  useEffect(() => {
-    if (isAuthenticated && user?.role === 'provider') {
-      loadData();
-    }
-  }, [currentWeekStart, currentMonth, calendarView]);
-  
-  // Load bookings and time slots
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!user) return;
     
     setIsLoading(true);
@@ -124,12 +103,34 @@ const ProviderSchedulePage: React.FC = () => {
       setBookings(transformedBookings);
       setTimeSlots(timeSlotsResponse.groupedSlots);
       setIsLoading(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load schedule data';
       console.error('Error loading schedule data:', err);
-      setError(err.message || 'Failed to load schedule data');
+      setError(errorMessage);
       setIsLoading(false);
     }
-  };
+  }, [user, calendarView, selectedDate, currentWeekStart, currentMonth, fetchProviderTimeSlots]);
+
+  // Load bookings and time slots when component mounts
+  useEffect(() => {
+    // Check if user is authenticated and is a provider
+    if (!authLoading) {
+      if (!isAuthenticated) {
+        router.push('/auth/login?redirect=/dashboard/provider/schedule');
+      } else if (user?.role !== 'provider') {
+        router.push('/dashboard');
+      } else {
+        loadData();
+      }
+    }
+  }, [user, authLoading, router, isAuthenticated, loadData]);
+  
+  // Load data when week or month changes
+  useEffect(() => {
+    if (isAuthenticated && user?.role === 'provider') {
+      loadData();
+    }
+  }, [currentWeekStart, currentMonth, calendarView, isAuthenticated, user, loadData]);
 
   // Format date for display
   const formatDate = (date: Date) => {
@@ -394,7 +395,7 @@ const ProviderSchedulePage: React.FC = () => {
                     {currentWeek.map((date, dateIndex) => (
                       <div key={dateIndex} className="relative">
                         {/* Time indicators */}
-                        {Array.from({ length: 12 }, (_, i) => i + 8).map((hour) => (
+                        {Array.from({ length: 12 }, (_, hourIndex) => hourIndex + 8).map((hour) => (
                           <div key={hour} className="border-t h-12 text-xs text-gray-500 pl-1">
                             {hour}:00
                           </div>
@@ -438,7 +439,7 @@ const ProviderSchedulePage: React.FC = () => {
                         {/* Time slots */}
                         {Object.entries(timeSlots)
                           .filter(([dateStr]) => new Date(dateStr).toDateString() === date.toDateString())
-                          .flatMap(([_, slots]) => slots)
+                          .flatMap(([, slots]) => slots)
                           .filter(slot => !slot.isBooked)
                           .map(slot => {
                             const startHour = parseInt(slot.startTime.split(':')[0]);
@@ -478,7 +479,7 @@ const ProviderSchedulePage: React.FC = () => {
                   
                   <div className="h-96 overflow-y-auto relative">
                     {/* Time indicators */}
-                    {Array.from({ length: 14 }, (_, i) => i + 7).map((hour) => (
+                    {Array.from({ length: 14 }, (_, hourIndex) => hourIndex + 7).map((hour) => (
                       <div key={hour} className="border-t h-16 flex">
                         <div className="w-16 text-xs text-gray-500 p-1 text-right pr-2 border-r">
                           {hour}:00
@@ -525,7 +526,7 @@ const ProviderSchedulePage: React.FC = () => {
                     {/* Time slots */}
                     {Object.entries(timeSlots)
                       .filter(([dateStr]) => new Date(dateStr).toDateString() === selectedDate.toDateString())
-                      .flatMap(([_, slots]) => slots)
+                      .flatMap(([, slots]) => slots)
                       .filter(slot => !slot.isBooked)
                       .map(slot => {
                         const startHour = parseInt(slot.startTime.split(':')[0]);
@@ -568,9 +569,9 @@ const ProviderSchedulePage: React.FC = () => {
                   
                   {/* Calendar grid */}
                   <div className="grid grid-cols-7 grid-rows-5 h-96">
-                    {Array.from({ length: 35 }, (_, i) => {
+                    {Array.from({ length: 35 }, (_, dayIndex) => {
                       const date = new Date(today.getFullYear(), today.getMonth(), 1);
-                      date.setDate(i - date.getDay() + 1);
+                      date.setDate(dayIndex - date.getDay() + 1);
                       return date;
                     }).map((date, index) => {
                       const isCurrentMonth = date.getMonth() === currentMonth.getMonth();
@@ -669,7 +670,7 @@ const ProviderSchedulePage: React.FC = () => {
                 </div>
               ) : bookings.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
-                  <p>You don't have any upcoming bookings.</p>
+                  <p>You don&apos;t have any upcoming bookings.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -689,7 +690,7 @@ const ProviderSchedulePage: React.FC = () => {
                           <h3 className="font-medium">{booking.service}</h3>
                           <p className="text-gray-600">Client: {booking.clientName}</p>
                           <p className="text-gray-600">
-                            {formatDate(booking.date)} • {formatTime(booking.startTime)} - {formatTime(booking.endTime)}
+                            {formatDate(booking.date)} &bull; {formatTime(booking.startTime)} - {formatTime(booking.endTime)}
                           </p>
                         </div>
                         

@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import AdminHeader from '@/components/layout/ProviderHeader';
 import Footer from '@/components/layout/Footer';
 import Button from '@/components/common/Button';
+import Image from 'next/image';
 import { Service, ServiceProvider } from '@/types/service';
 import { Address } from '@/types/user';
 import { BookingRequirements } from '@/types/booking';
@@ -123,7 +124,18 @@ const generateTimeSlots = () => {
 
 const mockTimeSlots = generateTimeSlots();
 
-export default function BookingPage() {
+// Type definitions for time slots
+interface TimeSlot {
+  time: string;
+  isAvailable: boolean;
+}
+
+interface DaySlots {
+  date: string;
+  slots: TimeSlot[];
+}
+
+function BookingPageContent() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -135,7 +147,7 @@ export default function BookingPage() {
   const [service, setService] = useState<Service | null>(null);
   const [provider, setProvider] = useState<ServiceProvider | null>(null);
   const [addresses, setAddresses] = useState<Address[]>([]);
-  const [timeSlots, setTimeSlots] = useState<any[]>([]);
+  const [timeSlots, setTimeSlots] = useState<DaySlots[]>([]);
   
   // Form state
   const [selectedDate, setSelectedDate] = useState<string>('');
@@ -178,7 +190,7 @@ export default function BookingPage() {
     }
   }, [serviceId, providerId, router]);
 
-  const handleRequirementsChange = (field: string, value: any) => {
+  const handleRequirementsChange = (field: string, value: string | boolean | number) => {
     setRequirements(prev => ({
       ...prev,
       [field]: value
@@ -331,36 +343,38 @@ export default function BookingPage() {
         {/* Service Summary */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
           <div className="flex items-start">
-            <div className="w-20 h-20 rounded-lg overflow-hidden mr-4 flex-shrink-0">
-              <img 
-                src={service.imageUrl || '/images/placeholders/service-default.svg'} 
-                alt={service.name} 
-                className="w-full h-full object-cover"
+            <div className="w-20 h-20 rounded-lg overflow-hidden mr-4 flex-shrink-0 relative">
+              <Image 
+                src={service?.imageUrl || '/images/placeholders/service-default.svg'} 
+                alt={service?.name || 'Service'} 
+                fill
+                className="object-cover"
               />
             </div>
             <div className="flex-grow">
-              <h2 className="text-xl font-semibold mb-1">{service.name}</h2>
-              <p className="text-gray-600 mb-2">{service.shortDescription}</p>
+              <h2 className="text-xl font-semibold mb-1">{service?.name}</h2>
+              <p className="text-gray-600 mb-2">{service?.shortDescription}</p>
               <div className="flex items-center">
-                <div className="w-6 h-6 rounded-full overflow-hidden mr-2">
-                  <img 
-                    src={provider.provider?.avatar || '/images/placeholders/avatar-default.svg'} 
-                    alt={provider.provider?.name || 'Provider'} 
-                    className="w-full h-full object-cover"
+                <div className="w-6 h-6 rounded-full overflow-hidden mr-2 relative">
+                  <Image 
+                    src={provider?.provider?.avatar || '/images/placeholders/avatar-default.svg'} 
+                    alt={provider?.provider?.name || 'Provider'} 
+                    fill
+                    className="object-cover"
                   />
                 </div>
-                <span className="text-sm text-gray-600">{provider.provider?.name}</span>
+                <span className="text-sm text-gray-600">{provider?.provider?.name}</span>
                 <div className="ml-4 flex items-center">
                   <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
                   </svg>
-                  <span className="ml-1 text-sm">{provider.rating} ({provider.reviewCount} reviews)</span>
+                  <span className="ml-1 text-sm">{provider?.rating} ({provider?.reviewCount} reviews)</span>
                 </div>
               </div>
             </div>
             <div className="text-right">
-              <div className="text-xl font-bold text-black">${service.basePrice}/hr</div>
-              <div className="text-sm text-gray-600">{service.duration} minutes</div>
+              <div className="text-xl font-bold text-black">${service?.basePrice}/hr</div>
+              <div className="text-sm text-gray-600">{service?.duration} minutes</div>
             </div>
           </div>
         </div>
@@ -589,7 +603,7 @@ export default function BookingPage() {
                   <div className="mb-6">
                     <label className="block text-gray-700 font-medium mb-2">Select Time</label>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                      {timeSlots.find(slot => slot.date === selectedDate)?.slots.map((timeSlot: { time: string; isAvailable: boolean }, index: number) => (
+                      {timeSlots.find(slot => slot.date === selectedDate)?.slots.map((timeSlot: TimeSlot, index: number) => (
                         <button
                           key={index}
                           type="button"
@@ -615,9 +629,9 @@ export default function BookingPage() {
                   <div className="bg-gray-50 rounded-lg p-4">
                     <h3 className="font-medium mb-2">Service Duration</h3>
                     <p className="text-gray-600">
-                      This service will take approximately {service.duration} minutes.
+                      This service will take approximately {service?.duration} minutes.
                     </p>
-                    {selectedDate && selectedTime && (
+                    {selectedDate && selectedTime && service && (
                       <div className="mt-2">
                         <p className="text-gray-700">
                           <span className="font-medium">Start:</span> {selectedTime} on {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
@@ -710,7 +724,7 @@ export default function BookingPage() {
             )}
             
             {/* Step 4: Payment */}
-            {currentStep === 4 && (
+            {currentStep === 4 && service && (
               <div>
                 <h2 className="text-xl font-semibold mb-4">Payment</h2>
                 <p className="text-gray-600 mb-6">
@@ -904,5 +918,20 @@ export default function BookingPage() {
       
       <Footer />
     </div>
+  );
+}
+
+export default function BookingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading booking form...</p>
+        </div>
+      </div>
+    }>
+      <BookingPageContent />
+    </Suspense>
   );
 }

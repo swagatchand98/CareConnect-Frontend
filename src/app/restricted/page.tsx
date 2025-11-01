@@ -45,7 +45,7 @@ export default function RestrictedPage() {
           <p className="text-gray-600 mb-6">
             {isAuthenticated ? (
               <>
-                You don't have permission to access this page. This area requires <span className="font-semibold">{requiredRole}</span> privileges.
+                You don&apos;t have permission to access this page. This area requires <span className="font-semibold">{requiredRole}</span> privileges.
               </>
             ) : (
               <>

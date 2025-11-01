@@ -13,8 +13,8 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: 'Caregiving Web Application',
-  description: 'A platform for caregiving services',
+  title: 'care-connect',
+  description: 'A platform for care services',
 };
 
 export default function RootLayout({

@@ -76,7 +76,7 @@ export interface ServiceFormData {
   duration: number;
   specialRequirements?: string;
   includedServices?: string[];
-  images?: File[];
+  images?: File[]; // This field now supports both image and video files
 }
 
 // Get all services with pagination and filtering

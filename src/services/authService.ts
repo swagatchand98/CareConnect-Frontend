@@ -8,7 +8,6 @@ import {
   User as FirebaseUser,
   UserCredential,
   sendEmailVerification,
-  GoogleAuthProvider,
 } from 'firebase/auth';
 import { auth, googleProvider } from '@/config/firebase';
 import api from '@/lib/axios';
@@ -195,7 +194,7 @@ export const loginWithGoogle = async (): Promise<UserData> => {
     const idToken = await getIdToken(userCredential.user);
     
     // 3. Extract name parts from Google profile
-    const { displayName, email, photoURL } = userCredential.user;
+    const { displayName, photoURL } = userCredential.user;
     const { firstName, lastName } = extractNameParts(displayName);
     
     // 4. Try to register first (if user doesn't exist, this will create them)
@@ -420,7 +419,7 @@ export const registerAsProviderWithGoogle = async (
     const idToken = await getIdToken(userCredential.user);
     
     // 3. Extract name parts from Google profile
-    const { displayName, email, photoURL } = userCredential.user;
+    const { displayName, photoURL } = userCredential.user;
     const { firstName, lastName } = extractNameParts(displayName);
     
     // 4. Register with backend as a provider

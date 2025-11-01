@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTimeSlots } from '@/hooks/useTimeSlots';
 import { useServices } from '@/hooks/useServices';
-import { GroupedTimeSlots, TimeSlot, TimeSlotCreateData } from '@/services/timeSlotService';
+import { GroupedTimeSlots, TimeSlotCreateData } from '@/services/timeSlotService';
 import { Service, getServiceById } from '@/services/serviceService';
 import Button from '@/components/common/Button';
 
@@ -15,7 +15,6 @@ const TimeSlotManager: React.FC<TimeSlotManagerProps> = ({ providerId }) => {
   const { 
     fetchProviderTimeSlots, 
     createNewTimeSlots, 
-    updateExistingTimeSlot, 
     deleteExistingTimeSlot, 
     isLoading, 
     error 
@@ -33,7 +32,6 @@ const TimeSlotManager: React.FC<TimeSlotManagerProps> = ({ providerId }) => {
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isLoadingService, setIsLoadingService] = useState<boolean>(false);
   
   // Use a ref to track if we've already tried to load services
   const servicesLoadAttempted = React.useRef(false);
@@ -89,21 +87,16 @@ const TimeSlotManager: React.FC<TimeSlotManagerProps> = ({ providerId }) => {
             
             // Also load the first service details
             try {
-              setIsLoadingService(true);
               const serviceResponse = await getServiceById(firstServiceId);
               if (isMounted) {
                 setSelectedService(serviceResponse.service);
               }
             } catch (err) {
               console.error('Error loading service details:', err);
-            } finally {
-              if (isMounted) {
-                setIsLoadingService(false);
-              }
             }
           }
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error loading services:', err);
         if (isMounted) setErrorMessage('Unable to load services. Please try again later.');
       }
@@ -124,18 +117,11 @@ const TimeSlotManager: React.FC<TimeSlotManagerProps> = ({ providerId }) => {
   // Use a ref to track if we've already tried to load time slots
   const timeSlotsLoadAttempted = React.useRef(false);
   
-  // Load provider's time slots
-  useEffect(() => {
-    if (selectedServiceId) {
-      // Reset the load attempt flag when service changes
-      timeSlotsLoadAttempted.current = false;
-      loadTimeSlots();
-    }
-  }, [selectedServiceId]);
-  
-  const loadTimeSlots = async () => {
+  // Define loadTimeSlots function
+  const loadTimeSlots = async (forceReload = false) => {
     // Skip if we've already tried to load time slots for this service
-    if (timeSlotsLoadAttempted.current) {
+    // unless forceReload is true
+    if (timeSlotsLoadAttempted.current && !forceReload) {
       return;
     }
     
@@ -182,7 +168,7 @@ const TimeSlotManager: React.FC<TimeSlotManagerProps> = ({ providerId }) => {
         setGroupedTimeSlots(response.groupedSlots);
         setErrorMessage(null); // Clear any previous error messages
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error loading time slots:', err);
       if (isMounted) setErrorMessage('Unable to load time slots. Please try again later.');
     }
@@ -192,6 +178,15 @@ const TimeSlotManager: React.FC<TimeSlotManagerProps> = ({ providerId }) => {
       isMounted = false;
     };
   };
+  
+  // Load provider's time slots when selectedServiceId changes
+  useEffect(() => {
+    if (selectedServiceId) {
+      // Reset the load attempt flag when service changes
+      timeSlotsLoadAttempted.current = false;
+      loadTimeSlots();
+    }
+  }, [selectedServiceId]);
   
   // Format date for display
   const formatDate = (dateStr: string) => {
@@ -218,14 +213,11 @@ const TimeSlotManager: React.FC<TimeSlotManagerProps> = ({ providerId }) => {
     
     // Fetch the selected service details to get its duration
     try {
-      setIsLoadingService(true);
       const response = await getServiceById(newServiceId);
       setSelectedService(response.service);
-      setIsLoadingService(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching service details:', err);
       setErrorMessage('Failed to load service details');
-      setIsLoadingService(false);
     }
   };
   
@@ -235,7 +227,7 @@ const TimeSlotManager: React.FC<TimeSlotManagerProps> = ({ providerId }) => {
   };
   
   // Handle start time selection
-  const handleStartTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleStartTimeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setStartTime(e.target.value);
     
     // Automatically set end time based on service duration
@@ -262,7 +254,7 @@ const TimeSlotManager: React.FC<TimeSlotManagerProps> = ({ providerId }) => {
   };
   
   // Handle end time selection
-  const handleEndTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEndTimeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setEndTime(e.target.value);
   };
   
@@ -330,8 +322,8 @@ const TimeSlotManager: React.FC<TimeSlotManagerProps> = ({ providerId }) => {
       await createNewTimeSlots(data);
       console.log('Time slot created successfully');
       
-      // Reload time slots
-      await loadTimeSlots();
+      // Force reload time slots to show the newly created time slot
+      await loadTimeSlots(true);
       
       // Reset form
       setStartTime('09:00');
@@ -345,9 +337,10 @@ const TimeSlotManager: React.FC<TimeSlotManagerProps> = ({ providerId }) => {
       setTimeout(() => {
         setSuccessMessage(null);
       }, 3000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error creating time slot:', err);
-      setErrorMessage(err.message || 'Failed to create time slot');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create time slot';
+      setErrorMessage(errorMessage);
     } finally {
       setIsCreating(false);
     }
@@ -355,7 +348,7 @@ const TimeSlotManager: React.FC<TimeSlotManagerProps> = ({ providerId }) => {
   
   // Delete time slot
   const handleDeleteTimeSlot = async (timeSlotId: string) => {
-    if (window.confirm('Are you sure you want to delete this time slot?')) {
+    if (window.confirm("Are you sure you want to delete this time slot?")) {
       try {
         console.log('Deleting time slot:', timeSlotId);
         
@@ -365,8 +358,8 @@ const TimeSlotManager: React.FC<TimeSlotManagerProps> = ({ providerId }) => {
         await deleteExistingTimeSlot(timeSlotId);
         console.log('Time slot deleted successfully');
         
-        // Reload time slots
-        await loadTimeSlots();
+        // Force reload time slots
+        await loadTimeSlots(true);
         
         // Show success message
         setSuccessMessage('Time slot deleted successfully');
@@ -376,9 +369,10 @@ const TimeSlotManager: React.FC<TimeSlotManagerProps> = ({ providerId }) => {
         setTimeout(() => {
           setSuccessMessage(null);
         }, 3000);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error deleting time slot:', err);
-        setErrorMessage(err.message || 'Failed to delete time slot');
+        const errorMessage = err instanceof Error ? err.message : 'Failed to delete time slot';
+        setErrorMessage(errorMessage);
       }
     }
   };
@@ -404,7 +398,7 @@ const TimeSlotManager: React.FC<TimeSlotManagerProps> = ({ providerId }) => {
   if (services.length === 0) {
     return (
       <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded-md">
-        You don't have any services yet. Please create a service first.
+        You don&apos;t have any services yet. Please create a service first.
       </div>
     );
   }
@@ -474,7 +468,7 @@ const TimeSlotManager: React.FC<TimeSlotManagerProps> = ({ providerId }) => {
             <select
               id="startTime"
               value={startTime}
-              onChange={(e) => handleStartTimeChange(e as any)}
+              onChange={handleStartTimeChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-black"
             >
               {timeOptions.map((time) => (
@@ -493,7 +487,7 @@ const TimeSlotManager: React.FC<TimeSlotManagerProps> = ({ providerId }) => {
             <select
               id="endTime"
               value={endTime}
-              onChange={(e) => handleEndTimeChange(e as any)}
+              onChange={handleEndTimeChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-black"
             >
               {timeOptions.map((time) => (
@@ -524,7 +518,7 @@ const TimeSlotManager: React.FC<TimeSlotManagerProps> = ({ providerId }) => {
           </div>
         ) : Object.keys(groupedTimeSlots).length === 0 ? (
           <div className="text-center py-8 text-gray-500">
-            <p>You don't have any time slots for this service yet.</p>
+            <p>You don&apos;t have any time slots for this service yet.</p>
           </div>
         ) : (
           <div className="space-y-6">

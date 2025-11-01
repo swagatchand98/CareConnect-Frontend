@@ -181,9 +181,10 @@ const ReviewList: React.FC<ReviewListProps> = ({
                 </div>
                 <div className="text-sm text-gray-600">
                   {/* If we have user data from populated fields */}
-                  {(review as any).userId?.firstName ? (
+                  {(review as unknown as { userId?: { firstName?: string; lastName?: string } }).userId?.firstName ? (
                     <span>
-                      {(review as any).userId.firstName} {(review as any).userId.lastName?.charAt(0)}.
+                      {(review as unknown as { userId: { firstName: string; lastName?: string } }).userId.firstName}{' '}
+                      {(review as unknown as { userId: { firstName: string; lastName?: string } }).userId.lastName?.charAt(0)}.
                     </span>
                   ) : (
                     <span>Anonymous</span>

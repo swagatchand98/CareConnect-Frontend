@@ -6,8 +6,7 @@ import {
   addToWishlist, 
   removeFromWishlist, 
   isInWishlist,
-  WishlistItem,
-  WishlistResponse
+  WishlistItem
 } from '@/services/wishlistService';
 
 export const useWishlist = () => {
@@ -64,8 +63,12 @@ export const useWishlist = () => {
     
     try {
       await removeFromWishlist(serviceId);
-      // Update local state
-      setWishlistItems(prev => prev.filter(item => item.serviceId._id !== serviceId));
+      // Update local state with proper null checks
+      setWishlistItems(prev => prev.filter(item => {
+        if (!item.serviceId) return false;
+        const itemServiceId = item.serviceId._id || item.serviceId.id;
+        return itemServiceId !== serviceId;
+      }));
       setTotalItems(prev => prev - 1);
     } catch (err: any) {
       setError(err.message || 'Failed to remove service from wishlist');

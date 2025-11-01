@@ -1,6 +1,6 @@
-# Caregiving Web Application
+# care-connect Web Application
 
-This is the frontend for the Caregiving Platform, built with Next.js and Firebase Authentication.
+This is the frontend for the care-connect Platform, built with Next.js and Firebase Authentication.
 
 ## Hybrid Authentication Approach
 

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserData } from '@/services/authService';
 import NotificationBell from '../common/NotificationBell';
@@ -28,7 +29,7 @@ const ProviderHeader: React.FC<ProviderHeaderProps> = ({ user }) => {
     router.push('/');
   };
 
-  // Fetch unread chats count
+  // Fetch unread chats count with rate limiting
   useEffect(() => {
     if (user) {
       const fetchUnreadChatsCount = async () => {
@@ -37,8 +38,9 @@ const ProviderHeader: React.FC<ProviderHeaderProps> = ({ user }) => {
           
           // Count unread messages where the sender is not the provider
           let unreadCount = 0;
-          chats.forEach((chat: any) => {
-            chat.messages.forEach((message: any) => {
+          
+          chats.forEach((chat) => {
+            chat.messages.forEach((message) => {
               if (message.sender === 'user' && !message.read) {
                 unreadCount++;
               }
@@ -48,13 +50,14 @@ const ProviderHeader: React.FC<ProviderHeaderProps> = ({ user }) => {
           setUnreadChats(unreadCount);
         } catch (error) {
           console.error('Error fetching unread chats count:', error);
+          // On error, reduce polling frequency or stop polling temporarily
         }
       };
       
       fetchUnreadChatsCount();
       
-      // Set up polling for unread chats
-      const intervalId = setInterval(fetchUnreadChatsCount, 60000); // Check every minute
+      // Set up polling for unread chats - reduced frequency to prevent rate limiting
+      const intervalId = setInterval(fetchUnreadChatsCount, 300000); // Check every 5 minutes instead of 1 minute
       
       return () => clearInterval(intervalId);
     }
@@ -67,7 +70,7 @@ const ProviderHeader: React.FC<ProviderHeaderProps> = ({ user }) => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <Link href="/dashboard/provider" className="text-2xl font-bold text-black">
-              Caregiving Provider
+              Care Provider
             </Link>
           </div>
         </div>
@@ -80,7 +83,7 @@ const ProviderHeader: React.FC<ProviderHeaderProps> = ({ user }) => {
       <div className="container mx-auto px-4 py-4">
         <div className="flex justify-between items-center">
           <Link href="/dashboard/provider" className="text-2xl font-bold text-black">
-            Caregiving Provider
+            Care Provider
           </Link>
           
           {/* Provider navigation */}
@@ -126,9 +129,11 @@ const ProviderHeader: React.FC<ProviderHeaderProps> = ({ user }) => {
               >
                 <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
                   {user.avatar ? (
-                    <img 
+                    <Image 
                       src={user.avatar} 
                       alt={user.name || 'Provider'} 
+                      width={40}
+                      height={40}
                       className="w-full h-full object-cover"
                     />
                   ) : (

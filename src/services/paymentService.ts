@@ -1,4 +1,26 @@
 import axios from '../lib/axios';
+import { Payment, Refund } from '../types/payment';
+
+// API response types (match the actual MongoDB document structure)
+export interface PaymentHistoryItem {
+  _id: string;
+  bookingId: {
+    _id: string;
+    serviceId: string;
+    dateTime: string;
+    status: string;
+  };
+  providerId: {
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  amount: number;
+  providerAmount: number;
+  status: string;
+  type: string;
+  createdAt: string;
+}
 
 // Define response types
 interface PaymentIntentResponse {
@@ -7,20 +29,20 @@ interface PaymentIntentResponse {
 }
 
 interface PaymentResponse {
-  payment: any;
+  payment: Payment;
 }
 
 interface RefundResponse {
-  refund: any;
+  refund: Refund;
   refundAmount: number;
 }
 
 interface PaymentHistoryResponse {
-  payments: any[];
+  payments: PaymentHistoryItem[];
 }
 
 interface BookingPaymentDetailsResponse {
-  payments: any[];
+  payments: Payment[];
 }
 
 /**

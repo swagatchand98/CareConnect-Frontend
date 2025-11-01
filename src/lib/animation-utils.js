@@ -1,5 +1,5 @@
 /**
- * Animation utilities for the caregiving web application
+ * Animation utilities for the care-connect web application
  */
 
 // Initialize scroll animations using Intersection Observer
@@ -125,7 +125,7 @@ export function initHoverEffects() {
 }
 
 // Create a tilt effect on hover
-function initTiltEffect(element, e) {
+function initTiltEffect(element) {
   element.addEventListener('mousemove', handleTilt);
   element.addEventListener('mouseleave', resetTilt);
   

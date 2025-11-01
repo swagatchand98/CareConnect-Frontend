@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Service, ServiceProvider, ServiceCategory } from '@/services/serviceService';
@@ -18,6 +18,12 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({ service, onBookNow }) =
   const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
   const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [videoProgress, setVideoProgress] = useState(0);
+  const [currentTime, setCurrentTime] = useState('0:00');
+  const [duration, setDuration] = useState('0:00');
+  const videoRef = useRef<HTMLVideoElement>(null);
   
   // Format provider name - simplified
   const getProviderName = () => {
@@ -60,8 +66,6 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({ service, onBookNow }) =
   // Get all media files (images and videos)
   const getMediaFiles = () => {
     try {
-      const mediaFiles = [];
-      
       // First check if we have mediaFiles field
       if (service.mediaFiles && Array.isArray(service.mediaFiles) && service.mediaFiles.length > 0) {
         return service.mediaFiles;
@@ -119,11 +123,91 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({ service, onBookNow }) =
     return mediaFiles[selectedMediaIndex];
   };
   
+  // Handle video playback
+  const toggleVideoPlayback = useCallback(() => {
+    if (!videoRef.current) return;
+    
+    if (videoRef.current.paused) {
+      videoRef.current.play();
+      setIsPlaying(true);
+    } else {
+      videoRef.current.pause();
+      setIsPlaying(false);
+    }
+  }, []);
+  
+  // Handle video seeking
+  const handleVideoSeek = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!videoRef.current) return;
+    
+    const progressBar = e.currentTarget;
+    const rect = progressBar.getBoundingClientRect();
+    const clickPosition = (e.clientX - rect.left) / rect.width;
+    
+    // Set the video's current time based on click position
+    videoRef.current.currentTime = clickPosition * videoRef.current.duration;
+    setVideoProgress(clickPosition * 100);
+  }, []);
+  
+  // Toggle fullscreen mode
+  const toggleFullscreen = useCallback(() => {
+    setIsFullscreen(prev => !prev);
+  }, []);
+  
+  // Close fullscreen when pressing escape
+  React.useEffect(() => {
+    const handleEscKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    
+    window.addEventListener('keydown', handleEscKey);
+    return () => window.removeEventListener('keydown', handleEscKey);
+  }, [isFullscreen]);
+  
+  // Format time in MM:SS format
+  const formatTime = (timeInSeconds: number): string => {
+    if (isNaN(timeInSeconds)) return '0:00';
+    
+    const minutes = Math.floor(timeInSeconds / 60);
+    const seconds = Math.floor(timeInSeconds % 60);
+    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+  };
+  
+  // Update video progress and time
+  React.useEffect(() => {
+    if (!videoRef.current) return;
+    
+    const updateVideoInfo = () => {
+      if (videoRef.current) {
+        const currentTimeInSeconds = videoRef.current.currentTime;
+        const durationInSeconds = videoRef.current.duration;
+        const progress = (currentTimeInSeconds / durationInSeconds) * 100 || 0;
+        
+        setVideoProgress(progress);
+        setCurrentTime(formatTime(currentTimeInSeconds));
+        setDuration(formatTime(durationInSeconds));
+      }
+    };
+    
+    const videoElement = videoRef.current;
+    videoElement.addEventListener('timeupdate', updateVideoInfo);
+    videoElement.addEventListener('loadedmetadata', updateVideoInfo);
+    
+    return () => {
+      if (videoElement) {
+        videoElement.removeEventListener('timeupdate', updateVideoInfo);
+        videoElement.removeEventListener('loadedmetadata', updateVideoInfo);
+      }
+    };
+  }, []);
+  
   // Update media type when selected index changes
   React.useEffect(() => {
     const media = getCurrentMedia();
     setMediaType(media.type as 'image' | 'video');
-  }, [selectedMediaIndex]);
+  }, [selectedMediaIndex, getCurrentMedia]);
   
   // Format date - simplified
   const formatDate = (dateString: string) => {
@@ -154,40 +238,105 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({ service, onBookNow }) =
         {/* Main Media Display */}
         <div className="relative h-96 md:h-[28rem] bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden group">
           {mediaType === 'video' ? (
-            <video 
-              src={getCurrentMedia().url}
-              className="w-full h-full object-cover"
-              controls
-              autoPlay={false}
-              poster="/images/placeholders/caregiver.jpg.svg"
-            />
+            <div className="relative w-full h-full">
+              <video 
+                ref={videoRef}
+                src={getCurrentMedia().url}
+                className="w-full h-full object-cover"
+                poster="/images/placeholders/caregiver.jpg.svg"
+                onClick={toggleVideoPlayback}
+                onPlay={() => setIsPlaying(true)}
+                onPause={() => setIsPlaying(false)}
+              />
+              
+              {/* Custom video controls overlay */}
+              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                <button 
+                  onClick={toggleVideoPlayback}
+                  className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center transition-transform duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-white/50"
+                  aria-label={isPlaying ? "Pause video" : "Play video"}
+                >
+                  {isPlaying ? (
+                    <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                    </svg>
+                  ) : (
+                    <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                  )}
+                </button>
+              </div>
+              
+              {/* Video time display */}
+              <div className="absolute bottom-4 left-4 bg-black/50 text-white text-sm px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                {currentTime} / {duration}
+              </div>
+              
+              {/* Video progress bar */}
+              <div 
+                className="absolute bottom-0 left-0 right-0 h-2 bg-gray-800/50 cursor-pointer group-hover:h-3 transition-all duration-200"
+                onClick={handleVideoSeek}
+                role="slider"
+                aria-label="Video progress"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={videoProgress}
+              >
+                <div className="h-full bg-blue-500" style={{ width: `${videoProgress}%` }}></div>
+                {/* Seek handle */}
+                <div 
+                  className="absolute top-1/2 -translate-y-1/2 h-4 w-4 rounded-full bg-white shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                  style={{ left: `calc(${videoProgress}% - 8px)` }}
+                ></div>
+              </div>
+            </div>
           ) : (
             <>
-              {getCurrentMedia().url.includes('amazonaws.com') ? (
-                <img 
-                  src={getCurrentMedia().url}
-                  alt={service.title}
-                  className={`w-full h-full object-cover transition-all duration-500 group-hover:scale-105 ${
-                    isImageLoaded ? 'opacity-100' : 'opacity-0'
-                  }`}
-                  onLoad={() => setIsImageLoaded(true)}
-                />
-              ) : (
-                <Image 
-                  src={getCurrentMedia().url}
-                  alt={service.title}
-                  fill
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 70vw, 50vw"
-                  className="object-cover transition-all duration-500 group-hover:scale-105"
-                  priority
-                  onLoad={() => setIsImageLoaded(true)}
-                />
-              )}
+              <div className="absolute inset-0 flex items-center justify-center">
+                {getCurrentMedia().url.includes('amazonaws.com') ? (
+                  <Image 
+                    src={getCurrentMedia().url}
+                    alt={service.title}
+                    className={`max-w-full max-h-full object-contain ${
+                      isImageLoaded ? 'opacity-100' : 'opacity-0'
+                    }`}
+                    style={{ width: 'auto', height: 'auto', maxHeight: '100%' }}
+                    onLoad={() => setIsImageLoaded(true)}
+                    width={800}
+                    height={600}
+                  />
+                ) : (
+                  <div className="relative w-full h-full flex items-center justify-center">
+                    <Image 
+                      src={getCurrentMedia().url}
+                      alt={service.title}
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 70vw, 50vw"
+                      className="object-contain"
+                      style={{ objectPosition: 'center' }}
+                      priority
+                      onLoad={() => setIsImageLoaded(true)}
+                    />
+                  </div>
+                )}
+              </div>
               
               {/* Image overlay gradient */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </>
           )}
+          
+          {/* Fullscreen button */}
+          <button
+            onClick={toggleFullscreen}
+            className="absolute top-4 right-4 w-10 h-10 bg-black/30 hover:bg-black/50 rounded-full flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
+            aria-label="Toggle fullscreen"
+          >
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V6a2 2 0 012-2h2M4 16v2a2 2 0 002 2h2m8-16h2a2 2 0 012 2v2m0 10v2a2 2 0 01-2 2h-2" />
+            </svg>
+          </button>
           
           {/* Media navigation arrows */}
           {getMediaFiles().length > 1 && (
@@ -232,7 +381,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({ service, onBookNow }) =
         {/* Thumbnail Navigation */}
         {getMediaFiles().length > 1 && (
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-4">
-            <div className="flex space-x-2 overflow-x-auto scrollbar-hide">
+            <div className="flex space-x-2 overflow-x-auto scrollbar-hide pb-1">
               {getMediaFiles().map((media, index) => (
                 <button 
                   key={index}
@@ -242,19 +391,35 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({ service, onBookNow }) =
                       ? 'ring-2 ring-white shadow-lg scale-105' 
                       : 'hover:scale-105 opacity-70 hover:opacity-100'
                   }`}
+                  aria-label={`View ${media.type} ${index + 1}`}
                 >
                   {media.type === 'video' ? (
                     <div className="w-full h-full bg-gray-800 flex items-center justify-center">
-                      <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z"/>
-                      </svg>
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z"/>
+                        </svg>
+                      </div>
+                      {media.url.includes('amazonaws.com') ? (
+                        <Image 
+                          src={media.url}
+                          alt={`${service.title} - Video thumbnail ${index + 1}`}
+                          className="w-full h-full object-cover opacity-70"
+                          width={80}
+                          height={80}
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-700"></div>
+                      )}
                     </div>
                   ) : (
                     media.url.includes('amazonaws.com') ? (
-                      <img 
+                      <Image 
                         src={media.url}
                         alt={`${service.title} - Media ${index + 1}`}
                         className="w-full h-full object-cover"
+                        width={80}
+                        height={80}
                       />
                     ) : (
                       <Image 
@@ -266,12 +431,168 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({ service, onBookNow }) =
                       />
                     )
                   )}
+                  
+                  {/* Media type indicator */}
+                  <div className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center">
+                    {media.type === 'video' ? (
+                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                      </svg>
+                    ) : (
+                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M4 5h16v16H4V5zm2 2v12h12V7H6z"/>
+                      </svg>
+                    )}
+                  </div>
                 </button>
               ))}
             </div>
           </div>
         )}
       </div>
+      
+      {/* Fullscreen Media Modal */}
+      {isFullscreen && (
+        <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/95" onClick={toggleFullscreen}></div>
+          
+          <div className="relative z-10 w-full max-w-7xl max-h-screen p-4">
+            {/* Close button */}
+            <button 
+              onClick={toggleFullscreen}
+              className="absolute top-4 right-4 z-20 w-10 h-10 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center transition-all duration-200"
+              aria-label="Close fullscreen view"
+            >
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+            
+            {/* Main media content */}
+            <div className="h-[calc(100vh-8rem)] flex items-center justify-center">
+              {mediaType === 'video' ? (
+                <div className="relative w-full h-full max-h-full flex items-center justify-center">
+                  <video
+                    src={getCurrentMedia().url}
+                    className="max-w-full max-h-full object-contain"
+                    controls
+                    autoPlay
+                    poster="/images/placeholders/caregiver.jpg.svg"
+                    onPlay={() => setIsPlaying(true)}
+                    onPause={() => setIsPlaying(false)}
+                    onTimeUpdate={(e) => {
+                      const currentTimeInSeconds = e.currentTarget.currentTime;
+                      const durationInSeconds = e.currentTarget.duration;
+                      setVideoProgress((currentTimeInSeconds / durationInSeconds) * 100 || 0);
+                      setCurrentTime(formatTime(currentTimeInSeconds));
+                      setDuration(formatTime(durationInSeconds));
+                    }}
+                    onLoadedMetadata={(e) => {
+                      setDuration(formatTime(e.currentTarget.duration));
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="relative w-full h-full flex items-center justify-center">
+                  {getCurrentMedia().url.includes('amazonaws.com') ? (
+                    <Image
+                      src={getCurrentMedia().url}
+                      alt={service.title}
+                      className="max-w-full max-h-full object-contain"
+                      style={{ margin: 'auto' }}
+                      width={1200}
+                      height={800}
+                    />
+                  ) : (
+                    <div className="relative w-full h-full">
+                      <Image
+                        src={getCurrentMedia().url}
+                        alt={service.title}
+                        fill
+                        sizes="100vw"
+                        className="object-contain"
+                        priority
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            
+            {/* Fullscreen thumbnail navigation */}
+            {getMediaFiles().length > 1 && (
+              <div className="absolute bottom-4 left-0 right-0">
+                <div className="flex justify-center space-x-2 px-4">
+                  {getMediaFiles().map((media, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedMediaIndex(index)}
+                      className={`relative h-16 w-16 rounded-lg overflow-hidden transition-all duration-200 ${
+                        selectedMediaIndex === index
+                          ? 'ring-2 ring-blue-500 scale-110'
+                          : 'opacity-60 hover:opacity-100'
+                      }`}
+                      aria-label={`View ${media.type} ${index + 1}`}
+                    >
+                      {media.type === 'video' ? (
+                        <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+                          <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z"/>
+                          </svg>
+                        </div>
+                      ) : (
+                        media.url.includes('amazonaws.com') ? (
+                          <Image 
+                            src={media.url}
+                            alt={`${service.title} - Media ${index + 1}`}
+                            className="w-full h-full object-cover"
+                            width={64}
+                            height={64}
+                          />
+                        ) : (
+                          <div className="relative h-full w-full">
+                            <Image 
+                              src={media.url}
+                              alt={`${service.title} - Media ${index + 1}`}
+                              fill
+                              sizes="64px"
+                              className="object-cover"
+                            />
+                          </div>
+                        )
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Navigation arrows */}
+            {getMediaFiles().length > 1 && (
+              <>
+                <button
+                  onClick={() => setSelectedMediaIndex(prev => prev > 0 ? prev - 1 : getMediaFiles().length - 1)}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-black/30 hover:bg-black/50 rounded-full flex items-center justify-center transition-all duration-200"
+                  aria-label="Previous media"
+                >
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setSelectedMediaIndex(prev => prev < getMediaFiles().length - 1 ? prev + 1 : 0)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-black/30 hover:bg-black/50 rounded-full flex items-center justify-center transition-all duration-200"
+                  aria-label="Next media"
+                >
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
+                  </svg>
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
       
       {/* Service Header */}
       <div className="p-6 md:p-8">
@@ -438,7 +759,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({ service, onBookNow }) =
               <svg className="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
               </svg>
-              What's Included
+              What&apos;s Included
             </h2>
             <ul className="space-y-2">
               {service.additionalDetails.includedServices.map((item, index) => (

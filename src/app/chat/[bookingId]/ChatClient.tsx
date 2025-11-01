@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import useBooking from '@/hooks/useBooking';
 import ChatInterface from '@/components/chat/ChatInterface';
@@ -12,12 +11,33 @@ interface ChatClientProps {
   bookingId: string;
 }
 
+interface BookingData {
+  booking: {
+    status: string;
+    providerId: {
+      _id: string;
+      firstName: string;
+      lastName: string;
+    };
+    userId: {
+      _id: string;
+      firstName: string;
+      lastName: string;
+    };
+    serviceId: {
+      title: string;
+    };
+    dateTime: string;
+    duration: number;
+  };
+}
+
 const ChatClient: React.FC<ChatClientProps> = ({ bookingId }) => {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
-  const { fetchBookingById, isLoading: bookingLoading, error: bookingError } = useBooking();
-  
-  const [booking, setBooking] = useState<any>(null);
+  const { fetchBookingById, error: bookingError } = useBooking();
+
+  const [booking, setBooking] = useState<BookingData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -56,9 +76,9 @@ const ChatClient: React.FC<ChatClientProps> = ({ bookingId }) => {
     try {
       const response = await fetchBookingById(bookingId);
       setBooking(response);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error loading booking details:', err);
-      setError(err.message || 'Failed to load booking details');
+      setError(err instanceof Error ? err.message : 'Failed to load booking details');
     } finally {
       setIsLoading(false);
     }
@@ -179,10 +199,10 @@ const ChatClient: React.FC<ChatClientProps> = ({ bookingId }) => {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              Chat with {isClient() ? booking.booking.providerId.firstName : booking.booking.userId.firstName}
+              Chat with {isClient() ? booking?.booking.providerId.firstName : booking?.booking.userId.firstName}
             </h1>
             <p className="text-gray-600">
-              Service: {booking.booking.serviceId.title}
+              Service: {booking?.booking.serviceId.title}
             </p>
           </div>
           <div className="flex space-x-2">
@@ -206,18 +226,18 @@ const ChatClient: React.FC<ChatClientProps> = ({ bookingId }) => {
         {/* Status Badge */}
         <div className="mb-6">
           <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-            booking.booking.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
-            booking.booking.status === 'in-progress' ? 'bg-purple-100 text-purple-800' :
-            booking.booking.status === 'completed' ? 'bg-green-100 text-green-800' :
-            booking.booking.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+            booking?.booking.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
+            booking?.booking.status === 'in-progress' ? 'bg-purple-100 text-purple-800' :
+            booking?.booking.status === 'completed' ? 'bg-green-100 text-green-800' :
+            booking?.booking.status === 'cancelled' ? 'bg-red-100 text-red-800' :
             'bg-gray-100 text-gray-800'
           }`}>
-            Booking Status: {booking.booking.status.charAt(0).toUpperCase() + booking.booking.status.slice(1)}
+            Booking Status: {booking?.booking.status ? booking.booking.status.charAt(0).toUpperCase() + booking.booking.status.slice(1) : 'Unknown'}
           </span>
         </div>
         
         {/* Chat Interface */}
-        {booking.booking.status === 'cancelled' ? (
+        {booking?.booking.status === 'cancelled' ? (
           <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded-md">
             <p>Chat is not available for cancelled bookings.</p>
           </div>
@@ -237,12 +257,12 @@ const ChatClient: React.FC<ChatClientProps> = ({ bookingId }) => {
             <div>
               <p className="text-sm text-gray-600">Date & Time:</p>
               <p className="font-medium">
-                {new Date(booking.booking.dateTime).toLocaleString()}
+                {booking?.booking.dateTime ? new Date(booking.booking.dateTime).toLocaleString() : 'N/A'}
               </p>
             </div>
             <div>
               <p className="text-sm text-gray-600">Duration:</p>
-              <p className="font-medium">{booking.booking.duration} minutes</p>
+              <p className="font-medium">{booking?.booking.duration} minutes</p>
             </div>
             <div>
               <p className="text-sm text-gray-600">
@@ -250,8 +270,8 @@ const ChatClient: React.FC<ChatClientProps> = ({ bookingId }) => {
               </p>
               <p className="font-medium">
                 {isClient() 
-                  ? `${booking.booking.providerId.firstName} ${booking.booking.providerId.lastName}`
-                  : `${booking.booking.userId.firstName} ${booking.booking.userId.lastName}`
+                  ? `${booking?.booking.providerId.firstName} ${booking?.booking.providerId.lastName}`
+                  : `${booking?.booking.userId.firstName} ${booking?.booking.userId.lastName}`
                 }
               </p>
             </div>

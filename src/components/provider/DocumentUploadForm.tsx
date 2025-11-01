@@ -3,12 +3,13 @@
 import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import Image from 'next/image';
 import Button from '../common/Button';
 import { ProviderAddress } from '@/services/authService';
 import api from '@/lib/axios';
 
 const DocumentUploadForm: React.FC = () => {
-  const { user, token } = useAuth();
+  const { token } = useAuth();
   const router = useRouter();
   
   const [documents, setDocuments] = useState<File[]>([]);
@@ -182,10 +183,11 @@ const DocumentUploadForm: React.FC = () => {
       
       // Redirect to provider dashboard
       router.push('/dashboard/provider?documents=success');
-    } catch (error: any) {
-      console.error('Document upload error:', error);
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } }, message?: string };
+      console.error('Document upload error:', err);
       setErrors({
-        general: error.response?.data?.message || error.message || 'Failed to upload documents. Please try again later.'
+        general: err.response?.data?.message || err.message || 'Failed to upload documents. Please try again later.'
       });
     } finally {
       setIsSubmitting(false);
@@ -329,10 +331,12 @@ const DocumentUploadForm: React.FC = () => {
               <div className="flex items-center space-x-6">
                 <div className="shrink-0">
                   {previewUrl ? (
-                    <img 
+                    <Image 
                       className="h-32 w-32 object-cover rounded-full" 
                       src={previewUrl} 
-                      alt="Profile preview" 
+                      alt="Profile preview"
+                      width={128}
+                      height={128}
                     />
                   ) : (
                     <div className="h-32 w-32 rounded-full bg-gray-200 flex items-center justify-center">

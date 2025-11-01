@@ -3,3 +3,7 @@
 :root {
   font-family: var(--font-poppins), sans-serif;
 }
+
+@theme {
+  --color-blue: #3C73FE;
+}

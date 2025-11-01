@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import useChat from '@/hooks/useChat';
-import { Chat, Message } from '@/services/chatService';
-import Button from '../common/Button';
+import { Message } from '@/services/chatService';
+// import Button from '../common/Button';
 import { PaperAirplaneIcon } from '@heroicons/react/24/solid';
 
 interface ChatInterfaceProps {
@@ -25,11 +25,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ bookingId, isActive = tru
   
   const [messageInput, setMessageInput] = useState('');
   const [isSending, setIsSending] = useState(false);
-  const [isChatDisabled, setIsChatDisabled] = useState(!isActive);
+  const [isChatDisabled] = useState(!isActive);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  // Track last message timestamp to avoid unnecessary polling
-  const [lastMessageTimestamp, setLastMessageTimestamp] = useState<string | null>(null);
+  // We'll keep the state but remove the unused variable warning
+  const [, setLastMessageTimestamp] = useState<string | null>(null);
   
   // Fetch chat data initially and then poll for updates with optimizations
   useEffect(() => {
@@ -124,20 +124,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ bookingId, isActive = tru
       // Clear input immediately for better UX
       setMessageInput('');
       
-      // Optimistically update UI with the new message
-      const optimisticMessage: Message = {
-        sender: user?.role === 'provider' ? 'provider' : 'user',
-        content: messageContent,
-        timestamp: new Date(),
-        read: false,
-        _id: `temp-${Date.now()}`
-      };
-      
       // Add message to UI immediately without waiting for API
       if (currentChat && currentChat.messages) {
-        // Create a new messages array with the optimistic message
-        const updatedMessages = [...currentChat.messages, optimisticMessage];
-        
         // Update the local state to show the message immediately
         // We're using a hack here since we can't directly modify the currentChat from useChat hook
         const chatDiv = document.querySelector('.chat-messages');
@@ -233,22 +221,22 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ bookingId, isActive = tru
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden">
       {/* Chat Header */}
-      <div className="bg-gray-100 px-4 py-3 border-b">
-        <h3 className="font-semibold">
+      <div className="bg-gray-100 px-3 sm:px-4 py-2 sm:py-3 border-b">
+        <h3 className="font-semibold text-sm sm:text-base">
           {user?.role === 'provider' ? 'Chat with Client' : 'Chat with Service Provider'}
         </h3>
       </div>
       
       {/* Messages */}
-      <div className="p-4 h-96 overflow-y-auto chat-messages">
+      <div className="p-3 sm:p-4 h-64 sm:h-96 overflow-y-auto chat-messages">
         {currentChat && currentChat.messages.length > 0 ? (
           currentChat.messages.map((message, index) => (
             <div 
               key={message._id || index}
-              className={`mb-4 flex ${isCurrentUserMessage(message) ? 'justify-end' : 'justify-start'}`}
+              className={`mb-3 sm:mb-4 flex ${isCurrentUserMessage(message) ? 'justify-end' : 'justify-start'}`}
             >
               <div 
-                className={`max-w-[75%] rounded-lg px-4 py-2 ${
+                className={`max-w-[85%] sm:max-w-[75%] rounded-lg px-3 sm:px-4 py-2 ${
                   isCurrentUserMessage(message) 
                     ? 'bg-blue-500 text-white' 
                     : 'bg-gray-100 text-gray-800'
@@ -257,7 +245,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ bookingId, isActive = tru
                 <div className="text-xs mb-1 font-medium">
                   {getUserName(message.sender)}
                 </div>
-                <p>{message.content}</p>
+                <p className="text-sm sm:text-base break-words">{message.content}</p>
                 <div className="text-xs mt-1 text-right opacity-75">
                   {formatTimestamp(message.timestamp)}
                 </div>
@@ -266,31 +254,34 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ bookingId, isActive = tru
           ))
         ) : (
           <div className="flex justify-center items-center h-full text-gray-500">
-            <p>No messages yet. Start the conversation!</p>
+            <p className="text-sm sm:text-base text-center px-4">No messages yet. Start the conversation!</p>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
       
       {/* Message Input */}
-      <form onSubmit={handleSendMessage} className="border-t p-4">
-        <div className="flex">
+      <form onSubmit={handleSendMessage} className="border-t p-3 sm:p-4">
+        <div className="flex gap-2 items-end">
           <input
             type="text"
             value={messageInput}
             onChange={(e) => setMessageInput(e.target.value)}
             placeholder="Type your message..."
-            className="flex-grow border rounded-l-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-grow border border-gray-300 rounded-lg px-3 sm:px-4 py-2 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             disabled={isSending}
           />
-          <Button
+          <button
             type="submit"
-            variant="primary"
-            className="rounded-l-none"
             disabled={!messageInput.trim() || isSending}
+            className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg px-3 sm:px-4 py-2 flex-shrink-0 transition-colors duration-200"
           >
-            <PaperAirplaneIcon className="h-5 w-5" />
-          </Button>
+            {isSending ? (
+              <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-2 border-white border-t-transparent"></div>
+            ) : (
+              <PaperAirplaneIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+            )}
+          </button>
         </div>
       </form>
     </div>

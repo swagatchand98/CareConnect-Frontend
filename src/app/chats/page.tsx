@@ -1,15 +1,16 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import useChat from '@/hooks/useChat';
 import { Chat } from '@/services/chatService';
 import { formatDistanceToNow } from 'date-fns';
 import Button from '@/components/common/Button';
 
-const ChatsPage: React.FC = () => {
+const ChatsPageContent: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -146,15 +147,15 @@ const ChatsPage: React.FC = () => {
   }
   
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8">
       <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">My Chats</h1>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Chats</h1>
           {bookingIdParam && (
             <Button
               onClick={() => router.push('/chats')}
               variant="outline"
-              className="text-sm"
+              className="w-full sm:w-auto text-sm"
             >
               Show All Chats
             </Button>
@@ -162,10 +163,10 @@ const ChatsPage: React.FC = () => {
         </div>
         
         {/* Filters */}
-        <div className="flex mb-6 border-b">
+        <div className="flex mb-4 sm:mb-6 border-b overflow-x-auto">
           <button 
             onClick={() => setSelectedFilter('all')}
-            className={`px-4 py-2 font-medium ${
+            className={`px-3 sm:px-4 py-2 font-medium text-sm sm:text-base whitespace-nowrap ${
               selectedFilter === 'all' 
                 ? 'text-blue-600 border-b-2 border-blue-600' 
                 : 'text-gray-600 hover:text-gray-900'
@@ -175,7 +176,7 @@ const ChatsPage: React.FC = () => {
           </button>
           <button 
             onClick={() => setSelectedFilter('confirmed')}
-            className={`px-4 py-2 font-medium ${
+            className={`px-3 sm:px-4 py-2 font-medium text-sm sm:text-base whitespace-nowrap ${
               selectedFilter === 'confirmed' 
                 ? 'text-blue-600 border-b-2 border-blue-600' 
                 : 'text-gray-600 hover:text-gray-900'
@@ -185,7 +186,7 @@ const ChatsPage: React.FC = () => {
           </button>
           <button 
             onClick={() => setSelectedFilter('completed')}
-            className={`px-4 py-2 font-medium ${
+            className={`px-3 sm:px-4 py-2 font-medium text-sm sm:text-base whitespace-nowrap ${
               selectedFilter === 'completed' 
                 ? 'text-blue-600 border-b-2 border-blue-600' 
                 : 'text-gray-600 hover:text-gray-900'
@@ -195,7 +196,7 @@ const ChatsPage: React.FC = () => {
           </button>
           <button 
             onClick={() => setSelectedFilter('cancelled')}
-            className={`px-4 py-2 font-medium ${
+            className={`px-3 sm:px-4 py-2 font-medium text-sm sm:text-base whitespace-nowrap ${
               selectedFilter === 'cancelled' 
                 ? 'text-blue-600 border-b-2 border-blue-600' 
                 : 'text-gray-600 hover:text-gray-900'
@@ -227,14 +228,14 @@ const ChatsPage: React.FC = () => {
         
         {/* Empty State */}
         {!isLoading && !error && filteredChats.length === 0 && (
-          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <div className="bg-white rounded-lg shadow-sm p-6 sm:p-8 text-center">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+              <svg className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
               </svg>
             </div>
-            <h2 className="text-xl font-medium text-gray-900 mb-2">No chats found</h2>
-            <p className="text-gray-500">
+            <h2 className="text-lg sm:text-xl font-medium text-gray-900 mb-2">No chats found</h2>
+            <p className="text-sm sm:text-base text-gray-500">
               {selectedFilter === 'all' 
                 ? "You don't have any chats yet." 
                 : `You don't have any ${selectedFilter} chats.`}
@@ -259,31 +260,35 @@ const ChatsPage: React.FC = () => {
                   href={`/booking/${chat.bookingId && typeof chat.bookingId === 'object' ? chat.bookingId._id : chat.bookingId}`}
                   className="block hover:bg-gray-50 transition-colors"
                 >
-                  <div className="p-4 flex items-start">
+                  <div className="p-3 sm:p-4 flex items-start">
                     {/* User Avatar */}
-                    <div className="flex-shrink-0 mr-4">
-                      <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                    <div className="flex-shrink-0 mr-3 sm:mr-4">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
                         {/* If we have a profile picture, show it */}
                         {(user?.role !== 'provider' && 
                           chat.providerId && 
                           typeof chat.providerId === 'object' && 
                           chat.providerId.profilePicture) ? (
-                          <img 
+                          <Image 
                             src={chat.providerId.profilePicture} 
                             alt={otherUserName} 
+                            width={48}
+                            height={48}
                             className="w-full h-full object-cover"
                           />
                         ) : (user?.role === 'provider' && 
                           chat.userId && 
                           typeof chat.userId === 'object' && 
                           chat.userId.profilePicture) ? (
-                          <img 
+                          <Image 
                             src={chat.userId.profilePicture} 
                             alt={otherUserName} 
+                            width={48}
+                            height={48}
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <span className="text-gray-600 font-medium">
+                          <span className="text-gray-600 font-medium text-sm sm:text-base">
                             {otherUserName.charAt(0)}
                           </span>
                         )}
@@ -292,26 +297,26 @@ const ChatsPage: React.FC = () => {
                     
                     {/* Chat Content */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start">
-                        <h3 className="text-sm font-medium text-gray-900 truncate">
+                      <div className="flex justify-between items-start mb-1">
+                        <h3 className="text-sm sm:text-base font-medium text-gray-900 truncate pr-2">
                           {otherUserName}
                         </h3>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-gray-500 flex-shrink-0">
                           {lastMessage ? formatTimestamp(lastMessage.timestamp) : ''}
                         </span>
                       </div>
                       
-                      <p className="text-sm text-gray-600 truncate mt-1">
+                      <p className="text-xs sm:text-sm text-gray-600 truncate mb-2">
                         {lastMessage ? lastMessage.content : 'No messages yet'}
                       </p>
                       
-                      <div className="flex justify-between items-center mt-2">
-                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0">
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full truncate max-w-full">
                           {serviceName}
                         </span>
                         
-                        <div className="flex items-center">
-                          <span className={`text-xs px-2 py-1 rounded-full ${
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${
                             bookingStatus === 'confirmed' || bookingStatus === 'in-progress' ? 'bg-green-100 text-green-800' :
                             bookingStatus === 'completed' ? 'bg-blue-100 text-blue-800' :
                             bookingStatus === 'cancelled' ? 'bg-red-100 text-red-800' :
@@ -325,7 +330,7 @@ const ChatsPage: React.FC = () => {
                           </span>
                           
                           {unreadCount > 0 && (
-                            <span className="ml-2 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                            <span className="bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0">
                               {unreadCount}
                             </span>
                           )}
@@ -340,6 +345,21 @@ const ChatsPage: React.FC = () => {
         )}
       </div>
     </div>
+  );
+};
+
+const ChatsPage: React.FC = () => {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading chats...</p>
+        </div>
+      </div>
+    }>
+      <ChatsPageContent />
+    </Suspense>
   );
 };
 

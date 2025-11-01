@@ -10,7 +10,6 @@ import {
   setDefaultAddress as setAddressAsDefault, 
   getDefaultAddress,
   Address,
-  AddressResponse,
   CreateAddressData,
   UpdateAddressData
 } from '@/services/addressService';

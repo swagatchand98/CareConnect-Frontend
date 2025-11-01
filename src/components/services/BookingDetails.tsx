@@ -49,7 +49,10 @@ const BookingDetails: React.FC<BookingDetailsProps> = ({ bookingId }) => {
     };
     
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bookingId]);
+  // Note: We're intentionally only depending on bookingId and using dataFetchedRef
+  // to prevent infinite loops that would occur if we included loadBookingDetails and checkForExistingReview
   
   // Scroll to chat section if URL has #chat hash
   useEffect(() => {
@@ -72,7 +75,7 @@ const BookingDetails: React.FC<BookingDetailsProps> = ({ bookingId }) => {
         
         // Check if any of the reviews are for this booking
         const existingReview = response.reviews.find(
-          review => (review as any).bookingId?._id === bookingId
+          review => (review as { bookingId?: { _id?: string } }).bookingId?._id === bookingId
         );
         
         setHasReview(!!existingReview);
@@ -119,8 +122,9 @@ const BookingDetails: React.FC<BookingDetailsProps> = ({ bookingId }) => {
       await updateStatus(bookingId, newStatus);
       // Refresh booking details after status update
       loadBookingDetails();
-    } catch (err: any) {
-      setUpdateError(err.message || 'Failed to update booking status');
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      setUpdateError(error.message || 'Failed to update booking status');
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -135,8 +139,9 @@ const BookingDetails: React.FC<BookingDetailsProps> = ({ bookingId }) => {
         await cancelUserBooking(bookingId);
         // Refresh booking details after cancellation
         loadBookingDetails();
-      } catch (err: any) {
-        setUpdateError(err.message || 'Failed to cancel booking');
+      } catch (err: unknown) {
+        const error = err as { message?: string };
+        setUpdateError(error.message || 'Failed to cancel booking');
       } finally {
         setIsUpdatingStatus(false);
       }
@@ -273,10 +278,10 @@ const BookingDetails: React.FC<BookingDetailsProps> = ({ bookingId }) => {
   }
   
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
-      <div className="flex justify-between items-start mb-6">
-        <h2 className="text-2xl font-semibold">Booking Details</h2>
-        <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusBadgeClass(booking.booking.status)}`}>
+    <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-6">
+        <h2 className="text-xl sm:text-2xl font-semibold">Booking Details</h2>
+        <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusBadgeClass(booking.booking.status)} flex-shrink-0`}>
           {booking.booking.status.charAt(0).toUpperCase() + booking.booking.status.slice(1)}
         </span>
       </div>
@@ -298,58 +303,58 @@ const BookingDetails: React.FC<BookingDetailsProps> = ({ bookingId }) => {
       )}
       
       {/* Service Information */}
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-2">Service Information</h3>
-        <div className="bg-gray-50 rounded-lg p-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="mb-4 sm:mb-6">
+        <h3 className="text-base sm:text-lg font-semibold mb-2">Service Information</h3>
+        <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
-              <p className="text-sm text-gray-600">Service:</p>
-              <p className="font-medium">{booking.booking.serviceId.title}</p>
+              <p className="text-xs sm:text-sm text-gray-600">Service:</p>
+              <p className="font-medium text-sm sm:text-base">{booking.booking.serviceId.title}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Price:</p>
-              <p className="font-medium">
+              <p className="text-xs sm:text-sm text-gray-600">Price:</p>
+              <p className="font-medium text-sm sm:text-base">
                 ${booking.booking.serviceId.price.amount.toFixed(2)} 
                 {booking.booking.serviceId.price.type === 'hourly' ? '/hour' : ' (fixed)'}
               </p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Date & Time:</p>
-              <p className="font-medium">{formatDate(booking.booking.dateTime)}</p>
+            <div className="sm:col-span-2">
+              <p className="text-xs sm:text-sm text-gray-600">Date & Time:</p>
+              <p className="font-medium text-sm sm:text-base break-words">{formatDate(booking.booking.dateTime)}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Duration:</p>
-              <p className="font-medium">{booking.booking.duration} minutes</p>
+              <p className="text-xs sm:text-sm text-gray-600">Duration:</p>
+              <p className="font-medium text-sm sm:text-base">{booking.booking.duration} minutes</p>
             </div>
-            <div className="md:col-span-2">
-              <p className="text-sm text-gray-600">Total Price:</p>
-              <p className="font-medium text-lg">${booking.booking.totalPrice.toFixed(2)}</p>
+            <div>
+              <p className="text-xs sm:text-sm text-gray-600">Total Price:</p>
+              <p className="font-medium text-lg sm:text-xl text-blue-600">${booking.booking.totalPrice.toFixed(2)}</p>
             </div>
           </div>
         </div>
       </div>
       
       {/* Provider Information */}
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-2">Provider Information</h3>
-        <div className="bg-gray-50 rounded-lg p-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="mb-4 sm:mb-6">
+        <h3 className="text-base sm:text-lg font-semibold mb-2">Provider Information</h3>
+        <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
+          <div className="grid grid-cols-1 gap-3 sm:gap-4">
             <div>
-              <p className="text-sm text-gray-600">Name:</p>
-              <p className="font-medium">
+              <p className="text-xs sm:text-sm text-gray-600">Name:</p>
+              <p className="font-medium text-sm sm:text-base">
                 {booking.booking.providerId.firstName} {booking.booking.providerId.lastName}
               </p>
             </div>
             {booking.booking.providerId.email && (
               <div>
-                <p className="text-sm text-gray-600">Email:</p>
-                <p className="font-medium">{booking.booking.providerId.email}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Email:</p>
+                <p className="font-medium text-sm sm:text-base break-all">{booking.booking.providerId.email}</p>
               </div>
             )}
             {booking.booking.providerId.phoneNumber && (
               <div>
-                <p className="text-sm text-gray-600">Phone:</p>
-                <p className="font-medium">{booking.booking.providerId.phoneNumber}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Phone:</p>
+                <p className="font-medium text-sm sm:text-base">{booking.booking.providerId.phoneNumber}</p>
               </div>
             )}
           </div>
@@ -357,26 +362,26 @@ const BookingDetails: React.FC<BookingDetailsProps> = ({ bookingId }) => {
       </div>
       
       {/* Client Information */}
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-2">Client Information</h3>
-        <div className="bg-gray-50 rounded-lg p-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="mb-4 sm:mb-6">
+        <h3 className="text-base sm:text-lg font-semibold mb-2">Client Information</h3>
+        <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
+          <div className="grid grid-cols-1 gap-3 sm:gap-4">
             <div>
-              <p className="text-sm text-gray-600">Name:</p>
-              <p className="font-medium">
+              <p className="text-xs sm:text-sm text-gray-600">Name:</p>
+              <p className="font-medium text-sm sm:text-base">
                 {booking.booking.userId.firstName} {booking.booking.userId.lastName}
               </p>
             </div>
             {booking.booking.userId.email && (
               <div>
-                <p className="text-sm text-gray-600">Email:</p>
-                <p className="font-medium">{booking.booking.userId.email}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Email:</p>
+                <p className="font-medium text-sm sm:text-base break-all">{booking.booking.userId.email}</p>
               </div>
             )}
             {booking.booking.userId.phoneNumber && (
               <div>
-                <p className="text-sm text-gray-600">Phone:</p>
-                <p className="font-medium">{booking.booking.userId.phoneNumber}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Phone:</p>
+                <p className="font-medium text-sm sm:text-base">{booking.booking.userId.phoneNumber}</p>
               </div>
             )}
           </div>
@@ -384,10 +389,10 @@ const BookingDetails: React.FC<BookingDetailsProps> = ({ bookingId }) => {
       </div>
       
       {/* Service Address */}
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-2">Service Address</h3>
-        <div className="bg-gray-50 rounded-lg p-4">
-          <p className="font-medium">
+      <div className="mb-4 sm:mb-6">
+        <h3 className="text-base sm:text-lg font-semibold mb-2">Service Address</h3>
+        <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
+          <p className="font-medium text-sm sm:text-base break-words">
             {booking.booking.address.street}, {booking.booking.address.city}, {booking.booking.address.state} {booking.booking.address.zipCode}
             {booking.booking.address.country && `, ${booking.booking.address.country}`}
           </p>
@@ -396,16 +401,16 @@ const BookingDetails: React.FC<BookingDetailsProps> = ({ bookingId }) => {
       
       {/* Special Instructions */}
       {booking.booking.specialInstructions && (
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold mb-2">Special Instructions</h3>
-          <div className="bg-gray-50 rounded-lg p-4">
-            <p>{booking.booking.specialInstructions}</p>
+        <div className="mb-4 sm:mb-6">
+          <h3 className="text-base sm:text-lg font-semibold mb-2">Special Instructions</h3>
+          <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
+            <p className="text-sm sm:text-base break-words">{booking.booking.specialInstructions}</p>
           </div>
         </div>
       )}
       
       {/* Chat Section */}
-      <div className="mb-6" ref={chatSectionRef} id="chat">
+      <div className="mb-4 sm:mb-6" ref={chatSectionRef} id="chat">
         
         {/* Show chat interface for confirmed or in-progress bookings */}
         {(booking.booking.status === 'in-progress' || booking.booking.status === 'confirmed') ? (
@@ -416,26 +421,28 @@ const BookingDetails: React.FC<BookingDetailsProps> = ({ bookingId }) => {
             />
           </div>
         ) : booking.booking.status === 'cancelled' ? (
-          <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded-md">
-            <p>Chat is not available for cancelled bookings.</p>
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-3 sm:px-4 py-3 rounded-md">
+            <p className="text-sm sm:text-base">Chat is not available for cancelled bookings.</p>
           </div>
         ) : booking.booking.status === 'completed' ? (
-          <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
-            <p className="mb-4">This booking is completed, but you can still view your chat history.</p>
+          <div className="bg-gray-50 border border-gray-200 rounded-md p-3 sm:p-4">
+            <p className="mb-3 sm:mb-4 text-sm sm:text-base">This booking is completed, but you can still view your chat history.</p>
             <Button
               onClick={() => router.push(`/chat/${bookingId}`)}
               variant="outline"
+              className="w-full sm:w-auto text-sm sm:text-base"
             >
               View Chat History
             </Button>
           </div>
         ) : (
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-            <p className="mb-4">Chat will be available once your booking is confirmed.</p>
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-3 sm:p-4">
+            <p className="mb-3 sm:mb-4 text-sm sm:text-base">Chat will be available once your booking is confirmed.</p>
             <Button
               onClick={() => router.push(`/chat/${bookingId}`)}
               variant="primary"
               disabled={booking.booking.status === 'pending'}
+              className="w-full sm:w-auto text-sm sm:text-base"
             >
               {booking.booking.status === 'pending' ? 'Chat Not Available Yet' : 'Start Chat'}
             </Button>
@@ -444,29 +451,29 @@ const BookingDetails: React.FC<BookingDetailsProps> = ({ bookingId }) => {
       </div>
       
       {/* Payment Information */}
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-2">Payment Information</h3>
+      <div className="mb-4 sm:mb-6">
+        <h3 className="text-base sm:text-lg font-semibold mb-2">Payment Information</h3>
         {booking.transaction && booking.transaction.status !== 'pending' ? (
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <p className="text-sm text-gray-600">Payment Status:</p>
-                <p className="font-medium capitalize">{booking.transaction.status}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Payment Status:</p>
+                <p className="font-medium text-sm sm:text-base capitalize">{booking.transaction.status}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Payment Method:</p>
-                <p className="font-medium capitalize">{booking.transaction.paymentMethod}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Payment Method:</p>
+                <p className="font-medium text-sm sm:text-base capitalize">{booking.transaction.paymentMethod}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Amount:</p>
-                <p className="font-medium">${booking.transaction.amount.toFixed(2)}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Amount:</p>
+                <p className="font-medium text-sm sm:text-base">${booking.transaction.amount.toFixed(2)}</p>
               </div>
             </div>
             
             {/* Show earnings breakdown for providers */}
             {isProvider() && booking.booking.status === 'completed' && (
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <h4 className="font-medium mb-3">Earnings Breakdown</h4>
+              <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-200">
+                <h4 className="font-medium mb-2 sm:mb-3 text-sm sm:text-base">Earnings Breakdown</h4>
                 <EarningsBreakdown
                   totalAmount={booking.transaction.amount}
                   platformFee={booking.transaction.platformCommission || booking.transaction.amount * 0.15}
@@ -480,24 +487,25 @@ const BookingDetails: React.FC<BookingDetailsProps> = ({ bookingId }) => {
             )}
           </div>
         ) : (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4">
             {isClient() && booking.booking.status === 'pending' ? (
-              <div className="flex flex-col md:flex-row justify-between items-center">
-                <div className="mb-4 md:mb-0">
-                  <p className="font-medium text-yellow-800 mb-1">Payment Required</p>
-                  <p className="text-sm text-yellow-700">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+                <div className="flex-1">
+                  <p className="font-medium text-yellow-800 mb-1 text-sm sm:text-base">Payment Required</p>
+                  <p className="text-xs sm:text-sm text-yellow-700">
                     Your booking requires payment to be confirmed.
                   </p>
                 </div>
                 <Button
                   onClick={() => router.push(`/payment/${bookingId}`)}
                   variant="primary"
+                  className="w-full sm:w-auto text-sm sm:text-base flex-shrink-0"
                 >
                   Pay Now (${booking.booking.totalPrice.toFixed(2)})
                 </Button>
               </div>
             ) : (
-              <p className="text-yellow-700">
+              <p className="text-yellow-700 text-sm sm:text-base">
                 {isClient() 
                   ? "Payment processing. This may take a moment to update."
                   : "Awaiting client payment."}
@@ -509,12 +517,12 @@ const BookingDetails: React.FC<BookingDetailsProps> = ({ bookingId }) => {
       
       {/* Review Section - Only show for completed bookings where the user is the client */}
       {isClient() && booking.booking.status === 'completed' && (
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold mb-2">Rate Your Experience</h3>
+        <div className="mb-4 sm:mb-6">
+          <h3 className="text-base sm:text-lg font-semibold mb-2">Rate Your Experience</h3>
           
           {hasReview ? (
-            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md">
-              <p>Thank you for your review! Your feedback helps other users find great caregivers.</p>
+            <div className="bg-green-50 border border-green-200 text-green-700 px-3 sm:px-4 py-3 rounded-md">
+              <p className="text-sm sm:text-base">Thank you for your review! Your feedback helps other users find great caregivers.</p>
             </div>
           ) : showReviewForm ? (
             <ReviewForm 
@@ -523,13 +531,14 @@ const BookingDetails: React.FC<BookingDetailsProps> = ({ bookingId }) => {
               onCancel={() => setShowReviewForm(false)}
             />
           ) : (
-            <div className="bg-gray-50 rounded-lg p-6 text-center">
-              <p className="mb-4">
+            <div className="bg-gray-50 rounded-lg p-4 sm:p-6 text-center">
+              <p className="mb-3 sm:mb-4 text-sm sm:text-base">
                 How was your experience with {booking.booking.providerId.firstName}? Your feedback helps other users find great caregivers.
               </p>
               <Button
                 onClick={() => setShowReviewForm(true)}
                 variant="primary"
+                className="w-full sm:w-auto text-sm sm:text-base"
               >
                 Write a Review
               </Button>
@@ -539,13 +548,13 @@ const BookingDetails: React.FC<BookingDetailsProps> = ({ bookingId }) => {
       )}
       
       {/* Action Buttons */}
-      <div className="mt-8">
+      <div className="mt-6 sm:mt-8">
         {/* Client Cancel Button - Prominently displayed at the top of actions */}
         {isClient() && (booking.booking.status === 'pending' || booking.booking.status === 'confirmed') && (
-          <div className="mb-4 flex justify-between items-center p-4 bg-red-50 border border-red-200 rounded-lg">
-            <div>
-              <h3 className="font-semibold text-red-700">Need to cancel?</h3>
-              <p className="text-sm text-red-600">
+          <div className="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex-1">
+              <h3 className="font-semibold text-red-700 text-sm sm:text-base">Need to cancel?</h3>
+              <p className="text-xs sm:text-sm text-red-600">
                 You can cancel this booking without penalty until the service begins.
               </p>
             </div>
@@ -553,7 +562,7 @@ const BookingDetails: React.FC<BookingDetailsProps> = ({ bookingId }) => {
               onClick={handleCancelBooking}
               disabled={isUpdatingStatus}
               variant="secondary"
-              className="bg-red-600 text-white hover:bg-red-700 border-red-600"
+              className="w-full sm:w-auto bg-red-600 text-white hover:bg-red-700 border-red-600 text-sm sm:text-base flex-shrink-0"
             >
               {isUpdatingStatus ? 'Cancelling...' : 'Cancel Booking'}
             </Button>
@@ -561,14 +570,15 @@ const BookingDetails: React.FC<BookingDetailsProps> = ({ bookingId }) => {
         )}
         
         {/* Other Action Buttons */}
-        <div className="flex flex-wrap justify-end gap-3">
+        <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
           {/* Provider Actions */}
           {isProvider() && getNextStatusOptions(booking.booking.status).map((option) => (
             <Button
               key={option.value}
-              onClick={() => handleUpdateStatus(option.value as any)}
+              onClick={() => handleUpdateStatus(option.value as 'confirmed' | 'in-progress' | 'completed')}
               disabled={isUpdatingStatus}
               variant="primary"
+              className="w-full sm:w-auto text-sm sm:text-base"
             >
               {isUpdatingStatus ? 'Updating...' : option.label}
             </Button>
@@ -578,6 +588,7 @@ const BookingDetails: React.FC<BookingDetailsProps> = ({ bookingId }) => {
           <Button
             onClick={() => router.back()}
             variant="outline"
+            className="w-full sm:w-auto text-sm sm:text-base"
           >
             Back
           </Button>

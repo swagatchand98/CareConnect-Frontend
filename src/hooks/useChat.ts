@@ -4,9 +4,6 @@ import { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Chat,
-  Message,
-  ChatResponse,
-  ChatsResponse,
   getUserChats,
   getChatByBookingId,
   sendMessage as sendMessageApi,
